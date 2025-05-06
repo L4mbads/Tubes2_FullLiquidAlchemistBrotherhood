@@ -4,7 +4,7 @@ services:
   frontend:
     container_name: fe
     image: flab/fe:1.0.0
-    build: ./frontend
+    build: ./src/frontend
     ports:
       - "3000:3000"
     environment:
@@ -14,7 +14,7 @@ services:
   backend:
     container_name: be
     image: flab/be:1.0.0
-    build: ./backend
+    build: ./src/backend
     ports:
       - '8000:8000'
 
