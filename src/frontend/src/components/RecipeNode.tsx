@@ -31,7 +31,7 @@ export default function RecipeNode({ data }: NodeProps<RecipeNodeData>) {
     borderRadius: 5,
     background: '#fff',
     pointerEvents: 'none',
-  
+    maxWidth: '100px',
   };
 
   return (

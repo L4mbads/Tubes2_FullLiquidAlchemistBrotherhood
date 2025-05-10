@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import '@/app/style.css'
 import axios from 'axios';
 import AutoCompleteInput from '@/components/AutoCompleteInput';
+import { RecipeNodeType } from '@/components/RecipeNode';
 
 const RecipeFlow = dynamic(() => import('../components/RecipeFlow'), {
   ssr: false,

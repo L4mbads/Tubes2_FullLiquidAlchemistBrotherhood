@@ -1,5 +1,3 @@
-// RecipeFlow.tsx
-
 import React, { useMemo } from 'react';
 import ReactFlow, { Background, BackgroundVariant, Node, Edge, Position } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -23,61 +21,48 @@ function calculateSubtreeWidth(recipe: RecipeNodeType): number {
 let nodesIdCounter = 0;
 let edgesIdCounter = 0;
 
-function buildTree(
+function layoutTree(
   recipe: RecipeNodeType,
-  depth = 0,
-  x = 0,
-  nodes: Node[] = [],
-  edges: Edge[] = [],
+  depth: number,
+  xOffset: number,
+  nodes: Node[],
+  edges: Edge[],
   parentId: string | null = null
-): [Node[], Edge[]] {
-  const resultNodeId = `node_${nodesIdCounter++}`;
+): { width: number; centerX: number } {
   const widthSpacing = 100;
   const heightSpacing = 150;
 
-  nodes.push({
-    id: resultNodeId,
-    type: 'recipeNode',
-    data: { name: recipe.name },
-    position: { x, y: -depth * heightSpacing },
-  });
+  const recipeId = `node_${nodesIdCounter++}`;
 
-  if (parentId) {
-    edges.push({
-      id: `edge_${edgesIdCounter++}`,
-      source: resultNodeId,
-      target: parentId,
-      type: 'smoothstep',
-      animated: true,
-    });
-  }
+  let subtreeCenterX = xOffset;
+  let totalSubtreeWidth = 1;
 
-  if (recipe.recipes) {
-    let currentX = x;
-    recipe.recipes.forEach((r) => {
-      const ingredient1Width = calculateSubtreeWidth(r.ingredient1);
-      const ingredient2Width = calculateSubtreeWidth(r.ingredient2);
-      const totalWidth = ingredient1Width + ingredient2Width;
-      const ingredient1X = currentX - (ingredient1Width * widthSpacing) / 2;
-      const ingredient2X = currentX + (ingredient2Width * widthSpacing) / 2;
+  if (recipe.recipes && recipe.recipes.length > 0) {
+    let currentX = xOffset;
+    const childrenWidths: { centerX: number; width: number }[] = [];
 
-      const stepNodeId = `step_${nodesIdCounter++}`;
-      const stepX = currentX;
-      const stepY = -(depth + 0.5) * heightSpacing;
+    for (const subRecipe of recipe.recipes) {
+      const w1 = calculateSubtreeWidth(subRecipe.ingredient1);
+      const w2 = calculateSubtreeWidth(subRecipe.ingredient2);
+      const totalWidth = w1 + w2;
+
+      const midX = currentX + (totalWidth * widthSpacing) / 2;
+      const stepId = `step_${nodesIdCounter++}`;
+      const stepY = -((depth + 0.5) * heightSpacing);
 
       nodes.push({
-        id: stepNodeId,
+        id: stepId,
         type: 'default',
         data: { label: '' },
-        position: { x: stepX, y: stepY },
+        position: { x: midX, y: stepY },
         style: {
           background: 'black',
           border: 'none',
-          borderRadius: '50%',
-          width: '6px',
-          height: '6px',
+          width: '1px',
+          height: '1px',
           padding: 0,
           margin: 0,
+          pointerEvents:'none',
         },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
@@ -85,23 +70,61 @@ function buildTree(
         draggable: false,
         selectable: false,
         hidden: false,
+        
       });
 
       edges.push({
         id: `edge_${edgesIdCounter++}`,
-        source: stepNodeId,
-        target: resultNodeId,
+        source: stepId,
+        target: recipeId,
         type: 'smoothstep',
         animated: true,
       });
 
-      buildTree(r.ingredient1, depth + 1, ingredient1X, nodes, edges, stepNodeId);
-      buildTree(r.ingredient2, depth + 1, ingredient2X, nodes, edges, stepNodeId);
+      const left = layoutTree(subRecipe.ingredient1, depth + 1, currentX, nodes, edges, stepId);
+      const right = layoutTree(
+        subRecipe.ingredient2,
+        depth + 1,
+        currentX + w1 * widthSpacing,
+        nodes,
+        edges,
+        stepId
+      );
 
       currentX += totalWidth * widthSpacing;
+      childrenWidths.push({ width: totalWidth, centerX: midX });
+    }
+
+    const avgX = childrenWidths.reduce((sum, w) => sum + w.centerX, 0) / childrenWidths.length;
+    subtreeCenterX = avgX;
+    totalSubtreeWidth = childrenWidths.reduce((sum, c) => sum + c.width, 0);
+  }
+
+  nodes.push({
+    id: recipeId,
+    type: 'recipeNode',
+    data: { name: recipe.name },
+    position: { x: subtreeCenterX, y: -depth * heightSpacing },
+  });
+
+  if (parentId) {
+    edges.push({
+      id: `edge_${edgesIdCounter++}`,
+      source: recipeId,
+      target: parentId,
+      type: 'smoothstep',
+      animated: true,
     });
   }
 
+  return { width: totalSubtreeWidth, centerX: subtreeCenterX };
+}
+
+
+function buildTreeWrapper(recipe: RecipeNodeType): [Node[], Edge[]] {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  layoutTree(recipe, 0, 0, nodes, edges);
   return [nodes, edges];
 }
 
@@ -110,7 +133,7 @@ export default function RecipeFlow({ tree }: RecipeFlowProps) {
     if (!tree) return [[], []];
     nodesIdCounter = 0;
     edgesIdCounter = 0;
-    return buildTree(tree);
+    return buildTreeWrapper(tree);
   }, [tree]);
 
   return (
