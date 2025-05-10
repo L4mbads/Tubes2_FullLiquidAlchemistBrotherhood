@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -52,6 +53,7 @@ func (node *ElementNode) checkValidRecipe(recipeIdx int) {
 		}
 		// fmt.Println("4")
 		node.ValidRecipeIdx[recipeIdx] = sumSlice(node.Recipes[recipeIdx].Ingredient1.ValidRecipeIdx) * sumSlice(node.Recipes[recipeIdx].Ingredient2.ValidRecipeIdx)
+		// node.ValidRecipeIdx[recipeIdx]++
 		fmt.Printf("[%d]%d anjay\n", recipeIdx, node.ValidRecipeIdx[recipeIdx])
 		// fmt.Println("5")
 		node.setValid()
@@ -61,7 +63,6 @@ func (node *ElementNode) checkValidRecipe(recipeIdx int) {
 func (node *ElementNode) setValid() {
 	node.IsValid = true
 	if node.Parent != nil {
-		fmt.Printf("%s mau painggil ngentot index %d\n", node.Name, node.Index)
 		node.Parent.checkValidRecipe(node.Index)
 	}
 }
@@ -81,11 +82,11 @@ func getElementType(index int) int {
 }
 
 func main() {
-	// url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
+	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
 
 	// connect to database
-	// db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	// db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,22 +97,22 @@ func main() {
 	db.SetConnMaxLifetime(0)
 
 	// create table if it doesn't exist
-	// _, err = db.Exec("DROP TABLE IF EXISTS recipes")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("DROP TABLE IF EXISTS elements")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	_, err = db.Exec("DROP TABLE IF EXISTS recipes")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("DROP TABLE IF EXISTS elements")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// create router
 	router := mux.NewRouter()
@@ -195,10 +196,10 @@ func main() {
 		fmt.Print(e.Error())
 	})
 
-	// err = c.Visit(url)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	err = c.Visit(url)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// start server
 	log.Fatal(http.ListenAndServe(":8000", enhancedRouter))
@@ -257,31 +258,6 @@ func getRecipes(db *sql.DB) http.HandlerFunc {
 }
 
 func getRecipe(db *sql.DB) http.HandlerFunc {
-	// return func(w http.ResponseWriter, r *http.Request) {
-	// 	element := r.URL.Query().Get("element")
-	// 	strategy := strings.ToLower(r.URL.Query().Get("strategy")) // "bfs" or "dfs"
-	// 	shortest := r.URL.Query().Get("shortest") == "true"
-	// 	// limit := ... (optional)
-	// 	fmt.Print(strategy)
-	// 	fmt.Print(shortest)
-
-	// 	if element == "" {
-	// 		http.Error(w, "element parameter required", http.StatusBadRequest)
-	// 		return
-	// 	}
-
-	// 	var results []*RecipeNode
-
-	// 	// switch strategy {
-	// 	// case "bfs":
-	// 	// 	// Optional: implement BFS
-	// 	// default:
-	// 	// 	results = dfs(element, graph, visited)
-	// 	// }
-
-	// 	w.Header().Set("Content-Type", "application/json")
-	// 	json.NewEncoder(w).Encode(results)
-	// }
 	return func(w http.ResponseWriter, r *http.Request) {
 		element := r.URL.Query().Get("element")
 		strategy := strings.ToLower(r.URL.Query().Get("strategy")) // "bfs" or "dfs"
@@ -296,9 +272,6 @@ func getRecipe(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// visited := make(map[string]bool) // To track visited elements and avoid cycles
-		// root, err := buildRecipeTree(db, element, visited, 0)
-		// target := 9999
 		if strategy == "dfs" {
 			root, _, err := shortestDFS(db, nil, element, 0, 999999, count)
 			if err != nil {
@@ -402,8 +375,9 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 	var minDepth = limit
 
 	for !queue.isEmpty() {
-
-		if sumSlice(root.ValidRecipeIdx) == targetCount {
+		recipeCount := sumSlice(root.ValidRecipeIdx)
+		fmt.Printf("RECIPE COUNT: %d\n", recipeCount)
+		if recipeCount >= targetCount {
 			fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
 			break
 		}
@@ -582,7 +556,7 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 		return nil, 0, fmt.Errorf("no valid recipe found for element: %s", element)
 	}
 
-	fmt.Printf("%d anjer", targetCount)
+	// fmt.Printf("%d anjer", targetCount)
 	// cutTree(root)
 	return root, minDepth, nil
 }
@@ -716,10 +690,10 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 	}
 	fmt.Printf("ROOTNYA BENER GAK %s %d %d\n", root.Name, sumSlice(root.ValidRecipeIdx), targetCount)
 	for _, recipe := range recipes {
-		// if sumSlice(root.ValidRecipeIdx) == targetCount {
-		// 	fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
-		// 	break
-		// }
+		if sumSlice(root.ValidRecipeIdx) >= targetCount {
+			fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
+			break
+		}
 
 		ingredient1 := recipe.Ingredient1
 		ingredient2 := recipe.Ingredient2
@@ -745,10 +719,10 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 			}
 		}
 
-		// if sumSlice(root.ValidRecipeIdx) == targetCount {
-		// 	fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
-		// 	break
-		// }
+		if sumSlice(root.ValidRecipeIdx) >= targetCount {
+			fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
+			break
+		}
 		if hasValidRecipe && ingredient2 != "" {
 			fmt.Printf("entering %s (%d, %d)\n", ingredient2, depth, minDepth)
 			child2, _, err := shortestDFS(db, node, ingredient2, depth+1, limit, targetCount)
