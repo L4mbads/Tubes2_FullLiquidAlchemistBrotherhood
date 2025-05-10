@@ -40,22 +40,6 @@ body {
     margin-bottom: 5px;
 }
 
-/* Text Input */
-.text-input {
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.text-input:focus {
-    outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
 /* Toggle Button */
 .toggle-container {
     display: flex;

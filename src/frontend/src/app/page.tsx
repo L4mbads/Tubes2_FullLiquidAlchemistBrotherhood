@@ -1,16 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import '@/app/style.css'
+import axios from 'axios';
+import AutoCompleteInput from '@/components/AutoCompleteInput';
 
 const RecipeFlow = dynamic(() => import('../components/RecipeFlow'), {
   ssr: false,
 });
 
 export default function Page() {
+
+  const [elements, setElements] = useState([])
+  useEffect(() => {
+    axios.get('http://localhost:8000/api/go/elements')
+    .then(res => setElements(res.data))
+    .catch(err => console.log(err))
+  }, [])
+
+  // console.log(elements)
+  const [selectedElement, setSelectedElement] = useState('');
+  const [strategy, setStrategy] = useState('dfs');
+
   const [showNumberInput, setShowNumberInput] = useState(false);
   const [recipeCount, setRecipeCount] = useState(1);
+
+  const [recipeTree, setRecipeTree] = useState<RecipeNodeType | null>(null);
 
   const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShowNumberInput(e.target.checked);
@@ -18,22 +34,50 @@ export default function Page() {
       setRecipeCount(1);
     }
   };
+
+  const handleSearch = () => {
+    if (!selectedElement) {
+      alert("Please select an element.");
+      return;
+    }
+
+    const url = `http://localhost:8000/api/go/recipe?element=${encodeURIComponent(selectedElement)}&strategy=${strategy}&count=${recipeCount}`;
+    axios.get(url)
+      .then(res => {
+        console.log("Recipe result:", res.data);
+        setRecipeTree(res.data);
+      })
+      .catch(err => {
+        console.error("Error fetching recipe:", err);
+      });
+  };
+
   return (
     <div className="page-container">
       <div className="left-panel">
         <h1>Little Alchemy 2 Recipe</h1>
         <div className='panel-section'>
-          <input type="text" className='text-input' placeholder='Enter Elements...'></input>
+          <AutoCompleteInput options={elements}   onSelect={setSelectedElement}></AutoCompleteInput>
         </div>
         <div className="panel-section">
             <label className="section-title">Algorithm</label>
             <div className="radio-group">
                 <label className="radio-option">
-                    <input type="radio" name="option" defaultChecked/>
+                    <input 
+                    type="radio" 
+                    name="option" 
+                    value="dfs"
+                    checked={strategy === 'dfs'}
+                    onChange={() => setStrategy('dfs')}/>
                     DFS
                 </label>
                 <label className="radio-option">
-                    <input type="radio" name="option"/>
+                    <input 
+                    type="radio" 
+                    name="option"
+                    value="bfs"
+                    checked={strategy === 'bfs'}
+                    onChange={() => setStrategy('bfs')}/>
                     BFS
                 </label>
             </div>
@@ -63,10 +107,10 @@ export default function Page() {
             </div>
           )}
         </div>
-        <button className="search-btn">Search</button>
+        <button className="search-btn" onClick={handleSearch}>Search</button>
       </div>
       <div className="flow-container">
-        <RecipeFlow />
+        <RecipeFlow tree={recipeTree}/>
       </div>
     </div>
   );
