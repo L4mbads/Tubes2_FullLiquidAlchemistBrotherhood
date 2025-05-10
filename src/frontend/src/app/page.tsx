@@ -29,6 +29,9 @@ export default function Page() {
 
   const [recipeTree, setRecipeTree] = useState<RecipeNodeType | null>(null);
 
+  const [loading, setLoading] = useState(false);
+  const [loadTime, setLoadTime] = useState<number | null>(null);
+
   const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShowNumberInput(e.target.checked);
     if (!e.target.checked) {
@@ -42,15 +45,21 @@ export default function Page() {
       return;
     }
 
+    setLoading(true);
+    setLoadTime(null);
+    const start = performance.now();
+
     const url = `http://localhost:8000/api/go/recipe?element=${encodeURIComponent(selectedElement)}&strategy=${strategy}&count=${recipeCount}`;
     axios.get(url)
       .then(res => {
-        console.log("Recipe result:", res.data);
+        const end = performance.now();
+        setLoadTime(end - start);
         setRecipeTree(res.data);
       })
       .catch(err => {
         console.error("Error fetching recipe:", err);
-      });
+      })
+      .finally(() => setLoading(false));
   };
 
   return (
@@ -109,6 +118,16 @@ export default function Page() {
           )}
         </div>
         <button className="search-btn" onClick={handleSearch}>Search</button>
+        {loading && (
+          <div className="loading-indicator">
+            <div className="spinner" />
+            <p>Loading...</p>
+          </div>
+        )}
+
+        {loadTime !== null && !loading && (
+          <p className="load-time">Loaded in {(loadTime / 1000).toFixed(2)}s</p>
+        )}
       </div>
       <div className="flow-container">
         <RecipeFlow tree={recipeTree}/>

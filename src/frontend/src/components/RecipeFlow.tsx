@@ -144,6 +144,7 @@ export default function RecipeFlow({ tree }: RecipeFlowProps) {
         fitView
         nodeTypes={{ recipeNode: RecipeNode }}
         nodeOrigin={[0.5, 0.5]}
+        onlyRenderVisibleElements
       >
         <Background color="#ccc" variant={BackgroundVariant.Cross} lineWidth={1} />
       </ReactFlow>
