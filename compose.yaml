@@ -15,8 +15,26 @@ services:
     container_name: be
     image: flab/be:1.0.0
     build: ./src/backend
+    environment:
+      DATABASE_URL: 'postgres://postgres:postgres@db:5432/postgres?sslmode=disable'
     ports:
       - '8000:8000'
+    depends_on:
+      - db
+  db:
+    container_name: db
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata: {}
 
   # frontend:
   #   build: ./frontend
