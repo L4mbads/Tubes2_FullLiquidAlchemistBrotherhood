@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -39,7 +38,7 @@ type ElementNode struct {
 }
 
 func (node *ElementNode) checkValidRecipe(recipeIdx int) {
-	fmt.Printf("check %s %d, %d\n", node.Name, recipeIdx, len(node.ValidRecipeIdx))
+	// fmt.Printf("check %s %d, %d\n", node.Name, recipeIdx, len(node.ValidRecipeIdx))
 	recipe := node.Recipes[recipeIdx]
 	// fmt.Println("1")
 	if recipe.Ingredient1 == nil || recipe.Ingredient2 == nil {
@@ -54,7 +53,7 @@ func (node *ElementNode) checkValidRecipe(recipeIdx int) {
 		// fmt.Println("4")
 		node.ValidRecipeIdx[recipeIdx] = sumSlice(node.Recipes[recipeIdx].Ingredient1.ValidRecipeIdx) * sumSlice(node.Recipes[recipeIdx].Ingredient2.ValidRecipeIdx)
 		// node.ValidRecipeIdx[recipeIdx]++
-		fmt.Printf("[%d]%d anjay\n", recipeIdx, node.ValidRecipeIdx[recipeIdx])
+		// fmt.Printf("[%d]%d anjay\n", recipeIdx, node.ValidRecipeIdx[recipeIdx])
 		// fmt.Println("5")
 		node.setValid()
 	}
@@ -82,11 +81,11 @@ func getElementType(index int) int {
 }
 
 func main() {
-	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
+	// url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
 
 	// connect to database
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	// db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
+	// db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,22 +96,22 @@ func main() {
 	db.SetConnMaxLifetime(0)
 
 	// create table if it doesn't exist
-	_, err = db.Exec("DROP TABLE IF EXISTS recipes")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec("DROP TABLE IF EXISTS elements")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// _, err = db.Exec("DROP TABLE IF EXISTS recipes")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// _, err = db.Exec("DROP TABLE IF EXISTS elements")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// create router
 	router := mux.NewRouter()
@@ -196,10 +195,10 @@ func main() {
 		fmt.Print(e.Error())
 	})
 
-	err = c.Visit(url)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = c.Visit(url)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// start server
 	log.Fatal(http.ListenAndServe(":8000", enhancedRouter))
@@ -347,17 +346,29 @@ func sumSlice(numbers []int) int {
 }
 
 func cutTree(node *ElementNode) {
-	fmt.Printf("cutting %s\n", node.Name)
-	// if node.Parent != nil {
-	// 	if node.Index < len(node.Parent.ValidRecipeIdx) && node.Parent.ValidRecipeIdx[node.Index] == 0 {
-	// 		fmt.Printf("deleting index %d len %d", node.Index, len(node.Parent.Recipes))
-	// 		node.Parent.Recipes = slices.Delete(node.Parent.Recipes, node.Index, node.Index+1)
-	// 	}
-	// }
-	for idx, child := range node.Recipes {
+	if node == nil {
+		return
+	}
+
+	// Collect indices to delete
+	var indicesToDelete []int
+	// fmt.Printf("cutting %s\n", node.Name)
+	for i, child := range node.Recipes {
+		// fmt.Printf("cutting in %s %s\n", child.Ingredient1.Name, child.Ingredient2.Name)
 		if !child.Ingredient1.IsValid || !child.Ingredient2.IsValid {
-			node.Parent.Recipes = slices.Delete(node.Parent.Recipes, idx, idx+1)
+			// fmt.Printf("invalid in %t %s %t %s\n", child.Ingredient1.IsValid, child.Ingredient1.Name, child.Ingredient2.IsValid, child.Ingredient2.Name)
+			indicesToDelete = append(indicesToDelete, i)
 		}
+		// cutTree(child.Ingredient1)
+		// cutTree(child.Ingredient2)
+	}
+
+	// Remove invalid recipes after iteration
+	for j := len(indicesToDelete) - 1; j >= 0; j-- {
+		idx := indicesToDelete[j]
+		node.Recipes = slices.Delete(node.Recipes, idx, idx+1)
+	}
+	for _, child := range node.Recipes {
 		cutTree(child.Ingredient1)
 		cutTree(child.Ingredient2)
 	}
@@ -397,6 +408,12 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 			minDepth = currentNode1.Depth
 			continue
 		}
+		recipeCount = sumSlice(root.ValidRecipeIdx)
+		fmt.Printf("RECIPE COUNT: %d\n", recipeCount)
+		if recipeCount >= targetCount {
+			fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
+			break
+		}
 
 		if currentNode1 != nil {
 			if isBasicElement(currentNode1.Name) {
@@ -405,11 +422,11 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 				currentNode1.setValid()
 			} else {
 				typeQuery := "SELECT type FROM elements WHERE name = $1"
-				row := db.QueryRow(typeQuery, element)
+				row := db.QueryRow(typeQuery, currentNode1.Name)
 				var elementType int
 				err := row.Scan(&elementType)
 				if err == sql.ErrNoRows {
-					return nil, 0, nil
+					continue
 				} else if err != nil {
 					return nil, 0, nil
 				}
@@ -433,11 +450,10 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 					var elementType1 int
 					err := row.Scan(&elementType1)
 					if err == sql.ErrNoRows {
-						return nil, 0, nil
+						continue
 					} else if err != nil {
 						return nil, 0, nil
 					}
-
 					if elementType1 >= elementType {
 						continue
 					}
@@ -474,6 +490,12 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 			}
 		}
 
+		recipeCount = sumSlice(root.ValidRecipeIdx)
+		fmt.Printf("RECIPE COUNT: %d\n", recipeCount)
+		if recipeCount >= targetCount {
+			fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
+			break
+		}
 		if currentNode2 != nil {
 			if isBasicElement(currentNode2.Name) {
 				// ingredient 2 basic element
@@ -481,7 +503,7 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 				currentNode2.setValid()
 			} else {
 				typeQuery := "SELECT type FROM elements WHERE name = $1"
-				row := db.QueryRow(typeQuery, element)
+				row := db.QueryRow(typeQuery, currentNode2.Name)
 				var elementType int
 				err := row.Scan(&elementType)
 				if err == sql.ErrNoRows {
@@ -492,8 +514,10 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 
 				query := "SELECT ingredient1, ingredient2 FROM recipes WHERE element = $1"
 				rows, err := db.Query(query, currentNode2.Name)
-				if err != nil {
-					return nil, 0, err
+				if err == sql.ErrNoRows {
+					continue
+				} else if err != nil {
+					return nil, 0, nil
 				}
 
 				i := 0
@@ -510,7 +534,7 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 					var elementType1 int
 					err := row.Scan(&elementType1)
 					if err == sql.ErrNoRows {
-						return nil, 0, nil
+						continue
 					} else if err != nil {
 						return nil, 0, nil
 					}
@@ -524,7 +548,7 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 					var elementType2 int
 					err = row.Scan(&elementType2)
 					if err == sql.ErrNoRows {
-						return nil, 0, nil
+						continue
 					} else if err != nil {
 						return nil, 0, nil
 					}
@@ -557,22 +581,18 @@ func shortestBFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 	}
 
 	// fmt.Printf("%d anjer", targetCount)
-	// cutTree(root)
+	cutTree(root)
 	return root, minDepth, nil
 }
 
 func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int, limit int, targetCount int) (*ElementNode, int, error) {
 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
 
-	for i := 0; i < depth; i++ {
-		fmt.Print("-")
-	}
-	fmt.Printf("%d %s\n", depth, element)
-
+	fmt.Printf("babik now %s\n", element)
 	if isBasicElement(element) {
 		node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
 		fmt.Println("single done")
-		// node.setValid()
+		node.setValid()
 		return node, 0, nil
 	}
 
@@ -594,9 +614,6 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 
 	var recipes []Recipe
 	// create a list/array to store ingredients
-	// leafRecipeIndex := -1
-	// singleLeafRecipeIndex := -1
-	// i := 0
 	for rows.Next() {
 		var ingredient1, ingredient2 string
 		if err := rows.Scan(&ingredient1, &ingredient2); err != nil {
@@ -612,7 +629,7 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 		var elementType1 int
 		err := row.Scan(&elementType1)
 		if err == sql.ErrNoRows {
-			return nil, 0, nil
+			continue
 		} else if err != nil {
 			return nil, 0, nil
 		}
@@ -626,7 +643,7 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 		var elementType2 int
 		err = row.Scan(&elementType2)
 		if err == sql.ErrNoRows {
-			return nil, 0, nil
+			continue
 		} else if err != nil {
 			return nil, 0, nil
 		}
@@ -643,14 +660,6 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 		fmt.Printf("%s %s\n", ingredient1, ingredient2)
 
 		recipes = append(recipes, recipe)
-
-		// // prioritize leaf nodes
-		// if isBasicElement(ingredient1) && isBasicElement(ingredient2) {
-		// 	leafRecipeIndex = i
-		// } else if singleLeafRecipeIndex == -1 && (isBasicElement(ingredient1) || isBasicElement(ingredient2)) {
-		// 	singleLeafRecipeIndex = i
-		// }
-		// i++
 	}
 
 	if err := rows.Err(); err != nil {
@@ -660,6 +669,7 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 	rows.Close()
 
 	if len(recipes) == 0 {
+		fmt.Printf("error kosong\n")
 		return nil, 0, err
 	}
 
@@ -688,9 +698,11 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 	for root.Parent != nil {
 		root = root.Parent
 	}
-	fmt.Printf("ROOTNYA BENER GAK %s %d %d\n", root.Name, sumSlice(root.ValidRecipeIdx), targetCount)
+	// fmt.Printf("ROOTNYA BENER GAK %s %d %d\n", root.Name, sumSlice(root.ValidRecipeIdx), targetCount)
 	for _, recipe := range recipes {
-		if sumSlice(root.ValidRecipeIdx) >= targetCount {
+		x := sumSlice(root.ValidRecipeIdx)
+		fmt.Printf("AAAAAAAA %d >= %d\n", x, targetCount)
+		if x >= targetCount {
 			fmt.Printf("%d VALID RECIPE IDX\n", targetCount)
 			break
 		}
@@ -750,7 +762,6 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 		// 	limit = minDepth + depth
 		// 	fmt.Printf("%s %s valid (%d)\n", ingredient1, ingredient2, depth)
 
-		// 	break
 		// }
 		i++
 	}
@@ -758,6 +769,7 @@ func shortestDFS(db *sql.DB, parentNode *ElementNode, element string, depth int,
 	// 	node.Recipes = append(node.Recipes, recipeNode)
 	// 	fmt.Println("ada yg elesai")
 	// }
+	cutTree(node)
 	return node, minDepth + 1, nil
 }
 
