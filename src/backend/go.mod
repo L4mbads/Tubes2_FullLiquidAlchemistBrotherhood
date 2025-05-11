@@ -1,4 +1,4 @@
-module api
+module flab
 
 go 1.24.2
 

@@ -2,16 +2,17 @@
 # FROM golang:1.24.2-alpine3.21
 FROM golang:1.24.2-alpine3.21 AS buildstage
 WORKDIR /app
-COPY . .
+COPY go.mod go.sum ./
 RUN go mod download
+COPY . .
 EXPOSE 8000
-RUN go build -o /api .
+RUN go build -o /flab ./cmd/server/main.go
 
 FROM alpine:latest
 WORKDIR /
-COPY --from=buildstage /api /api
+COPY --from=buildstage /flab /flab
 EXPOSE 8000
-ENTRYPOINT [ "/api" ]
+ENTRYPOINT [ "/flab" ]
 
 
 # # set working directory

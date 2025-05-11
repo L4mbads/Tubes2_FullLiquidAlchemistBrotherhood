@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const LandingPage: React.FC = () => {
@@ -35,7 +35,7 @@ const LandingPage: React.FC = () => {
         playsInline
       />
 
-      {/* Overlay content 
+      {/* Overlay content
         Please adjust this
       */}
       {!isStarting && (
