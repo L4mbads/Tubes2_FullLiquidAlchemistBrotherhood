@@ -81,8 +81,8 @@ function layoutTree(
         animated: true,
       });
 
-      const left = layoutTree(subRecipe.ingredient1, depth + 1, currentX, nodes, edges, stepId);
-      const right = layoutTree(
+      layoutTree(subRecipe.ingredient1, depth + 1, currentX, nodes, edges, stepId);
+      layoutTree(
         subRecipe.ingredient2,
         depth + 1,
         currentX + w1 * widthSpacing,
@@ -90,6 +90,8 @@ function layoutTree(
         edges,
         stepId
       );
+
+
 
       currentX += totalWidth * widthSpacing;
       childrenWidths.push({ width: totalWidth, centerX: midX });
