@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -81,11 +82,11 @@ func getElementType(index int) int {
 }
 
 func main() {
-	// url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
+	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
 
 	// connect to database
-	// db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	// db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,26 +97,27 @@ func main() {
 	db.SetConnMaxLifetime(0)
 
 	// create table if it doesn't exist
-	// _, err = db.Exec("DROP TABLE IF EXISTS recipes")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("DROP TABLE IF EXISTS elements")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	_, err = db.Exec("DROP TABLE IF EXISTS recipes")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("DROP TABLE IF EXISTS elements")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// create router
 	router := mux.NewRouter()
 	router.HandleFunc("/api/go/elements", getElements(db)).Methods("GET")
+	// router.HandleFunc("/api/go/element", getElement(db)).Methods("GET")
 	router.HandleFunc("/api/go/recipes", getRecipes(db)).Methods("GET")
 	router.HandleFunc("/api/go/recipe", getRecipe(db)).Methods("GET")
 
@@ -195,10 +197,10 @@ func main() {
 		fmt.Print(e.Error())
 	})
 
-	// err = c.Visit(url)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	err = c.Visit(url)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// start server
 	log.Fatal(http.ListenAndServe(":8000", enhancedRouter))
@@ -229,6 +231,56 @@ func getElements(db *sql.DB) http.HandlerFunc {
 	}
 
 }
+
+// func getElement(db *sql.DB) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+
+// 		element := r.URL.Query().Get("element")
+// 		strategy := strings.ToLower(r.URL.Query().Get("strategy")) // "bfs" or "dfs"
+// 		count, err := strconv.Atoi(r.URL.Query().Get("count"))
+// 		if element == "" {
+// 			http.Error(w, "element parameter required", http.StatusBadRequest)
+// 			return
+// 		}
+
+// 		if err != nil {
+// 			http.Error(w, "target count parameter error", http.StatusBadRequest)
+// 			return
+// 		}
+
+// 		query := "SELECT type FROM elements WHERE name = $1"
+// 		row := db.QueryRow(query, .Name)
+// 		var elementType int
+// 		err := row.Scan(&elementType)
+// 		if err == sql.ErrNoRows {
+// 			continue
+// 		} else if err != nil {
+// 			return nil, 0, nil
+// 		}
+
+// 		rows, err := db.QueryRow("SELECT * FROM elements")
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		defer rows.Close()
+
+// 		elements := []ElementType{}
+// 		for rows.Next() {
+// 			var u ElementType
+// 			if err := rows.Scan(&u.Name, &u.ImageUrl, &u.Type); err != nil {
+// 				log.Fatal(err)
+// 			}
+// 			elements = append(elements, u)
+// 		}
+// 		if err := rows.Err(); err != nil {
+// 			log.Fatal(err)
+// 		}
+
+// 		json.NewEncoder(w).Encode(elements)
+
+// 	}
+
+// }
 
 func getRecipes(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
