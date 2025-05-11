@@ -25,6 +25,7 @@ body {
     top: 0;
     gap: 20px;
     z-index: 10;
+    min-width: 300px;
 }
 
 .panel-section {
@@ -137,7 +138,6 @@ input:checked + .toggle-slider:before {
     flex: 1;
     border: 1px solid #ddd;
     border-radius: 8px;
-    overflow: hidden;
     min-height: 0;
 }
 
