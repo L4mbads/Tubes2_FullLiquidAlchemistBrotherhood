@@ -117,7 +117,7 @@ func main() {
 	// create router
 	router := mux.NewRouter()
 	router.HandleFunc("/api/go/elements", getElements(db)).Methods("GET")
-	// router.HandleFunc("/api/go/element", getElement(db)).Methods("GET")
+	router.HandleFunc("/api/go/element/{element}", getElement(db)).Methods("GET")
 	router.HandleFunc("/api/go/recipes", getRecipes(db)).Methods("GET")
 	router.HandleFunc("/api/go/recipe", getRecipe(db)).Methods("GET")
 
@@ -232,55 +232,26 @@ func getElements(db *sql.DB) http.HandlerFunc {
 
 }
 
-// func getElement(db *sql.DB) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
+func getElement(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-// 		element := r.URL.Query().Get("element")
-// 		strategy := strings.ToLower(r.URL.Query().Get("strategy")) // "bfs" or "dfs"
-// 		count, err := strconv.Atoi(r.URL.Query().Get("count"))
-// 		if element == "" {
-// 			http.Error(w, "element parameter required", http.StatusBadRequest)
-// 			return
-// 		}
+		vars := mux.Vars(r)
+		element := vars["element"]
 
-// 		if err != nil {
-// 			http.Error(w, "target count parameter error", http.StatusBadRequest)
-// 			return
-// 		}
+		query := "SELECT * FROM elements WHERE name = $1"
+		row := db.QueryRow(query, element)
+		var elementType ElementType
+		err := row.Scan(&elementType.Name, &elementType.ImageUrl, &elementType.Type)
+		if err != nil {
+			http.Error(w, "element not found", http.StatusBadRequest)
+			return
+		}
 
-// 		query := "SELECT type FROM elements WHERE name = $1"
-// 		row := db.QueryRow(query, .Name)
-// 		var elementType int
-// 		err := row.Scan(&elementType)
-// 		if err == sql.ErrNoRows {
-// 			continue
-// 		} else if err != nil {
-// 			return nil, 0, nil
-// 		}
+		json.NewEncoder(w).Encode(elementType)
 
-// 		rows, err := db.QueryRow("SELECT * FROM elements")
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		defer rows.Close()
+	}
 
-// 		elements := []ElementType{}
-// 		for rows.Next() {
-// 			var u ElementType
-// 			if err := rows.Scan(&u.Name, &u.ImageUrl, &u.Type); err != nil {
-// 				log.Fatal(err)
-// 			}
-// 			elements = append(elements, u)
-// 		}
-// 		if err := rows.Err(); err != nil {
-// 			log.Fatal(err)
-// 		}
-
-// 		json.NewEncoder(w).Encode(elements)
-
-// 	}
-
-// }
+}
 
 func getRecipes(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
