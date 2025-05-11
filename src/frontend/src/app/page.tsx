@@ -54,6 +54,7 @@ export default function Page() {
       .then(res => {
         const end = performance.now();
         setLoadTime(end - start);
+        console.log(res.data);
         setRecipeTree(res.data);
       })
       .catch(err => {
