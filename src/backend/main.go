@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -82,7 +83,7 @@ func getElementType(index int) int {
 }
 
 func main() {
-	// url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
+	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
 
 	// connect to database
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
@@ -97,26 +98,27 @@ func main() {
 	db.SetConnMaxLifetime(0)
 
 	// create table if it doesn't exist
-	// _, err = db.Exec("DROP TABLE IF EXISTS recipes")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("DROP TABLE IF EXISTS elements")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	_, err = db.Exec("DROP TABLE IF EXISTS recipes")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("DROP TABLE IF EXISTS elements")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS elements (name TEXT, image_url TEXT, type SMALLINT)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS recipes (element TEXT, ingredient1 TEXT, ingredient2 TEXT)")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// create router
 	router := mux.NewRouter()
 	router.HandleFunc("/api/go/elements", getElements(db)).Methods("GET")
+	router.HandleFunc("/api/go/element/{element}", getElement(db)).Methods("GET")
 	router.HandleFunc("/api/go/recipes", getRecipes(db)).Methods("GET")
 	router.HandleFunc("/api/go/recipe", getRecipe(db)).Methods("GET")
 
@@ -196,10 +198,10 @@ func main() {
 		fmt.Print(e.Error())
 	})
 
-	// err = c.Visit(url)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	err = c.Visit(url)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// start server
 	log.Fatal(http.ListenAndServe(":8000", enhancedRouter))
@@ -226,6 +228,27 @@ func getElements(db *sql.DB) http.HandlerFunc {
 		}
 
 		json.NewEncoder(w).Encode(elements)
+
+	}
+
+}
+
+func getElement(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		vars := mux.Vars(r)
+		element := vars["element"]
+
+		query := "SELECT * FROM elements WHERE name = $1"
+		row := db.QueryRow(query, element)
+		var elementType ElementType
+		err := row.Scan(&elementType.Name, &elementType.ImageUrl, &elementType.Type)
+		if err != nil {
+			http.Error(w, "element not found", http.StatusBadRequest)
+			return
+		}
+
+		json.NewEncoder(w).Encode(elementType)
 
 	}
 
