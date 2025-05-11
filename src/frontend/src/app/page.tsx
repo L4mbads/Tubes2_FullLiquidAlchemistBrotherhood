@@ -57,7 +57,14 @@ export default function Page() {
         setRecipeTree(res.data);
       })
       .catch(err => {
-        console.error("Error fetching recipe:", err);
+        let errorMessage = "Error fetching recipe.";
+
+        if (err.response && err.response.data) {
+          errorMessage = err.response.data.message || errorMessage;
+        }
+
+        console.error("Error fetching recipe:", errorMessage);
+        alert(errorMessage);
       })
       .finally(() => setLoading(false));
   };

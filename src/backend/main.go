@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"os"
 
 	"github.com/gocolly/colly"
 	"github.com/gorilla/mux"
@@ -84,8 +85,8 @@ func main() {
 	// url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
 
 	// connect to database
-	// db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	// db, err := sql.Open("postgres", "host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -259,22 +260,22 @@ func getRecipes(db *sql.DB) http.HandlerFunc {
 func getRecipe(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		element := r.URL.Query().Get("element")
-		strategy := strings.ToLower(r.URL.Query().Get("strategy")) // "bfs" or "dfs"
-		count, err := strconv.Atoi(r.URL.Query().Get("count"))
+		strategy := strings.ToLower(r.URL.Query().Get("strategy"))
+		count, err := strconv.Atoi(r.URL.Query().Get("count"))		
 		if element == "" {
-			http.Error(w, "element parameter required", http.StatusBadRequest)
+			http.Error(w, createErrorResponse("element parameter required", http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 
 		if err != nil {
-			http.Error(w, "target count parameter error", http.StatusBadRequest)
+			http.Error(w, createErrorResponse("target count parameter error", http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 
 		if strategy == "dfs" {
 			root, _, err := shortestDFS(db, nil, element, 0, 999999, count)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
@@ -283,7 +284,7 @@ func getRecipe(db *sql.DB) http.HandlerFunc {
 		} else {
 			root, _, err := shortestBFS(db, nil, element, 0, 999999, count)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
@@ -291,6 +292,16 @@ func getRecipe(db *sql.DB) http.HandlerFunc {
 			json.NewEncoder(w).Encode(root)
 		}
 	}
+}
+
+func createErrorResponse(message string, statusCode int) string {
+	errorResponse := map[string]interface{}{
+		"error":      true,
+		"message":    message,
+		"statusCode": statusCode,
+	}
+	errorJSON, _ := json.Marshal(errorResponse)
+	return string(errorJSON)
 }
 
 func isBasicElement(element string) bool {
