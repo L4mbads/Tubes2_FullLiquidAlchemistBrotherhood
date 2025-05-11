@@ -24,8 +24,8 @@ type Bounds = {
   maxY: number;
 };
 
-const WIDTH_SPACING = 100;
-const HEIGHT_SPACING = 150;
+const WIDTH_SPACING = 175;
+const HEIGHT_SPACING = 175;
 const PADDING = 100;
 
 function RecipeFlowInner({ tree }: RecipeFlowProps) {
