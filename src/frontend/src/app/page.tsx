@@ -54,6 +54,7 @@ const Page: React.FC = () => {
         loop
         muted
         playsInline
+        style={{backgroundColor: 'black'}}
       >
         <source src="/Road.mp4" type="video/mp4" />
         Your browser does not support the video tag.

@@ -73,7 +73,7 @@ export default function Page() {
   return (
     <div className="page-container">
       <div className="left-panel">
-        <h1 style={{color: 'white'}}>Little Alchemy 2 Recipe</h1>
+        <h1 style={{color: '#8bd450'}}>Little Alchemy 2 Recipe</h1>
         <div className='panel-section'>
           <AutoCompleteInput options={elements}   onSelect={setSelectedElement}></AutoCompleteInput>
         </div>

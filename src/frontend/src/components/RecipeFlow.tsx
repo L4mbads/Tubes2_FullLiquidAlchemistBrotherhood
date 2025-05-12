@@ -1,7 +1,6 @@
 import React, { useMemo, useEffect, useCallback } from 'react';
 import ReactFlow, { 
   Background, 
-  BackgroundVariant, 
   Node, 
   Edge, 
   Position, 
@@ -113,6 +112,7 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
             source: stepId,
             target: recipeId,
             type: 'smoothstep',
+            style: {stroke: 'white'}
           });
           
           layoutTree(subRecipe.ingredient1, depth + 1, currentX, stepId);
@@ -157,6 +157,7 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
           source: recipeId,
           target: parentId,
           type: 'smoothstep',
+          style: {stroke: 'white'}
         });
       }
       
@@ -209,12 +210,11 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
         position="bottom-left" 
         pannable 
         zoomable 
-        style={{ width: 200, height: 150 }} 
-        nodeColor="#000" 
+        style={{ width: 200, height: 150, backgroundColor: '#734f9a' }} 
+        nodeColor="#1d1a2f"
       />
       <Background 
-        color="#ccc" 
-        variant={BackgroundVariant.Cross} 
+        color="#734f9a" 
         lineWidth={1} 
       />
     </ReactFlow>

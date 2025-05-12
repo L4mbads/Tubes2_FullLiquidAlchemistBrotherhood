@@ -47,7 +47,7 @@ export default function RecipeNode({ data }: NodeProps<RecipeNodeData>) {
     padding: 10,
     border: '1px solid #ddd',
     borderRadius: 5,
-    background: '#fff',
+    background: '#8bd450',
     pointerEvents: 'none',
     maxWidth: '150px',
     minHeight: '40px',
