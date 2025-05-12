@@ -30,9 +30,11 @@ const Page: React.FC = () => {
       rate = Math.min(rate + 0.5, 10);
       video.playbackRate = rate;
 
-      if (rate >= 3) {
+      if (rate >= 10) {
         clearInterval(rampInterval);
-        router.push('/search');
+        setTimeout(() => {
+          router.push('/search');
+        }, 100); // 100ms delay
       }
     }, 100);
 
@@ -57,7 +59,6 @@ const Page: React.FC = () => {
         Your browser does not support the video tag.
       </video>
 
-      {/* Overlay content with forced white text */}
       <div style={{color: 'white', paddingTop: 50}} className="relative z-10 flex flex-col items-center w-full h-full text-center px-4">
         {!isStarting ? (
           <>
