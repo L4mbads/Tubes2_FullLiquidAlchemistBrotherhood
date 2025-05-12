@@ -1,145 +1,84 @@
-'use client';
+"use client";
+import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import '@/app/style.css';
 
-import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import '@/app/style.css'
-import axios from 'axios';
-import AutoCompleteInput from '@/components/AutoCompleteInput';
-import { RecipeNodeType } from '@/components/RecipeNode';
+const Page: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const router = useRouter();
 
-const RecipeFlow = dynamic(() => import('../components/RecipeFlow'), {
-  ssr: false,
-});
-
-export default function Page() {
-
-  const [elements, setElements] = useState([])
+  // Play the video once on mount
   useEffect(() => {
-    axios.get('http://localhost:8000/api/go/elements')
-    .then(res => setElements(res.data))
-    .catch(err => console.log(err))
-  }, [])
-
-  // console.log(elements)
-  const [selectedElement, setSelectedElement] = useState('');
-  const [strategy, setStrategy] = useState('dfs');
-
-  const [showNumberInput, setShowNumberInput] = useState(false);
-  const [recipeCount, setRecipeCount] = useState(1);
-
-  const [recipeTree, setRecipeTree] = useState<RecipeNodeType | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [loadTime, setLoadTime] = useState<number | null>(null);
-
-  const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setShowNumberInput(e.target.checked);
-    if (!e.target.checked) {
-      setRecipeCount(1);
+    const video = videoRef.current;
+    if (video) {
+      video.play().catch(error => {
+        console.error("Background video playback failed:", error);
+      });
     }
-  };
+  }, []);
 
-  const handleSearch = () => {
-    if (!selectedElement) {
-      alert("Please select an element.");
-      return;
-    }
+  // Handle acceleration
+  useEffect(() => {
+    if (!isStarting || !videoRef.current) return;
 
-    setLoading(true);
-    setLoadTime(null);
-    const start = performance.now();
+    const video = videoRef.current;
+    let rate = 1;
+    video.playbackRate = rate;
 
-    const url = `http://localhost:8000/api/go/recipe?element=${encodeURIComponent(selectedElement)}&strategy=${strategy}&count=${recipeCount}`;
-    axios.get(url)
-      .then(res => {
-        const end = performance.now();
-        setLoadTime(end - start);
-        console.log(res.data);
-        setRecipeTree(res.data);
-      })
-      .catch(err => {
-        let errorMessage = "Error fetching recipe.";
+    const rampInterval = setInterval(() => {
+      rate = Math.min(rate + 0.5, 10);
+      video.playbackRate = rate;
 
-        if (err.response && err.response.data) {
-          errorMessage = err.response.data.message || errorMessage;
-        }
+      if (rate >= 3) {
+        clearInterval(rampInterval);
+        router.push('/search');
+      }
+    }, 100);
 
-        console.error("Error fetching recipe:", errorMessage);
-        alert(errorMessage);
-      })
-      .finally(() => setLoading(false));
+    return () => clearInterval(rampInterval);
+  }, [isStarting, router]);
+
+  const handleStart = () => {
+    setIsStarting(true);
   };
 
   return (
-    <div className="page-container">
-      <div className="left-panel">
-        <h1>Little Alchemy 2 Recipe</h1>
-        <div className='panel-section'>
-          <AutoCompleteInput options={elements}   onSelect={setSelectedElement}></AutoCompleteInput>
-        </div>
-        <div className="panel-section">
-            <label className="section-title">Algorithm</label>
-            <div className="radio-group">
-                <label className="radio-option">
-                    <input 
-                    type="radio" 
-                    name="option" 
-                    value="dfs"
-                    checked={strategy === 'dfs'}
-                    onChange={() => setStrategy('dfs')}/>
-                    DFS
-                </label>
-                <label className="radio-option">
-                    <input 
-                    type="radio" 
-                    name="option"
-                    value="bfs"
-                    checked={strategy === 'bfs'}
-                    onChange={() => setStrategy('bfs')}/>
-                    BFS
-                </label>
-            </div>
-        </div>
-        <div className='panel-section'>
-          <div className="toggle-container">
-            <span className="toggle-label"><strong>Multiple Recipes</strong></span>
-            <label className="toggle-switch">
-              <input 
-                type="checkbox"
-                onChange={handleToggleChange}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-          {showNumberInput && (
-            <div className="panel-section" style={{ marginTop: '10px' }}>
-              <label className="section-title">Number of Recipes</label>
-              <input
-                type="number"
-                className='text-input'
-                min="1"
-                max="10"
-                value={recipeCount}
-                onChange={(e) => setRecipeCount(Math.max(1, parseInt(e.target.value) || 1))}
-              />
-            </div>
-          )}
-        </div>
-        <button className="search-btn" onClick={handleSearch}>Search</button>
-        {loading && (
-          <div className="loading-indicator">
-            <div className="spinner" />
-            <p>Loading...</p>
-          </div>
-        )}
+    <div className="relative w-screen h-screen overflow-hidden bg-black" style={{color: 'black'}}>
+      <video
+        ref={videoRef}
+        className="absolute top-0 left-0 w-full h-full object-cover"
+        autoPlay
+        loop
+        muted
+        playsInline
+      >
+        <source src="/Road.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
 
-        {loadTime !== null && !loading && (
-          <p className="load-time">Loaded in {(loadTime / 1000).toFixed(2)}s</p>
+      {/* Overlay content with forced white text */}
+      <div style={{color: 'white', paddingTop: 50}} className="relative z-10 flex flex-col items-center w-full h-full text-center px-4">
+        {!isStarting ? (
+          <>
+            <h1 style={{color: 'white'}} className="text-4xl md:text-6xl font-bold mb-6">
+              Full Liquid Alchemist
+            </h1>
+            <button
+              onClick={handleStart}
+              className="search-button"
+            >
+              Start Searching
+            </button>
+          </>
+        ) : (
+          <h1 style={{color: 'white'}} className="text-4xl md:text-6xl font-bold mb-6">
+            Accelerating...
+          </h1>
         )}
-      </div>
-      <div className="flow-container">
-        <RecipeFlow tree={recipeTree}/>
       </div>
     </div>
   );
-}
+};
+
+export default Page;
