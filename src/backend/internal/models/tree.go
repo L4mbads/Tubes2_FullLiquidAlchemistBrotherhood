@@ -590,7 +590,6 @@ func processNodeBFS(db *sql.DB, node *ElementNode, queue *RecipeQueue) {
 
 		queue.enqueue(newRecipe)
 		node.Recipes = append(node.Recipes, newRecipe)
-		break
 
 		i++
 	}
