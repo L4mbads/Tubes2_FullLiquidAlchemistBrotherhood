@@ -36,7 +36,15 @@ export default function AutoCompleteInput({ options, onSelect }: AutoCompleteInp
         placeholder='Enter elements...'
         onClick={() => setShowOptions(!showOptions)}
         value={element}
-        onChange={(e) => setElement(e.target.value)}
+        onChange={(e) => 
+          {
+            setElement(e.target.value)
+          }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            selectElementHandler(element);
+          }
+        }}
       />
       {showOptions && (
         <ul className='options'>
@@ -53,7 +61,7 @@ export default function AutoCompleteInput({ options, onSelect }: AutoCompleteInp
 
 function ElementOptions({ option, onSelect }: ElementOptionsProps) {
   return (
-    <div className="element-option" onClick={() => onSelect(option.Name)}>
+    <div className="element-option" style={{color: 'white'}} onClick={() => onSelect(option.Name)}>
     <Image
     src={option.ImageUrl}
     alt={option.Name}
@@ -63,8 +71,8 @@ function ElementOptions({ option, onSelect }: ElementOptionsProps) {
     loading="lazy"
     />
       <div className="element-details">
-        <div className="element-name">{option.Name}</div>
-        <div className="element-tier">Tier: {option.Type}</div>
+        <div className="element-name" style={{color: 'white'}}>{option.Name}</div>
+        <div className="element-tier" style={{color: 'white'}}>Tier: {option.Type}</div>
       </div>
     </div>
   );
