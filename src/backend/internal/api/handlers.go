@@ -71,27 +71,18 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		if strategy == "dfs" {
-			// if count == 1 {
-			// 	globalRoot = &ElementNode{Name: element, Parent: nil}
-			// 	_, _, err := singleDFS(db, globalRoot, count)
-			// 	if err != nil {
-			// 		http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
-			// 		return
-			// 	}
-			// 	w.Header().Set("Content-Type", "application/json")
-			// 	json.NewEncoder(w).Encode(globalRoot)
-			// } else {
-			root, _, err := models.ShortestDFS(db, nil, element, 0, 999999, count)
+			// ctx := context.Background()
+			// sem := make(chan struct{}, 10)
+			root, err := models.DFS(db, nil, element, count)
 			if err != nil {
 				http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(root)
-			// }
 
 		} else {
-			root, _, err := models.ShortestBFS(db, nil, element, 0, 999999, count)
+			root, err := models.BFS(db, element, count)
 			if err != nil {
 				http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
 				return
@@ -102,6 +93,7 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 		}
 	}
 }
+
 func createErrorResponse(message string, statusCode int) string {
 	errorResponse := map[string]interface{}{
 		"error":      true,
