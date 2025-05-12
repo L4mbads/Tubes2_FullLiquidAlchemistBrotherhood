@@ -1,18 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import dynamic from 'next/dynamic';
 import '@/app/search/style.css'
 import axios from 'axios';
 import AutoCompleteInput from '@/components/AutoCompleteInput';
 import { RecipeNodeType } from '@/components/RecipeNode';
+import DarkModeToggleButton from '@/components/DarkModeToggleButton';
+import { DarkModeContext } from '@/components/DarkModeProvider';
 
 const RecipeFlow = dynamic(() => import('../../components/RecipeFlow'), {
   ssr: false,
 });
 
 export default function Page() {
+  const context = useContext(DarkModeContext);
 
+  if (!context) {
+    throw new Error('No Context!');
+  }
+
+  const { darkMode } = context;
   const [elements, setElements] = useState([])
   useEffect(() => {
     axios.get('http://localhost:8000/api/go/elements')
@@ -71,75 +79,77 @@ export default function Page() {
   };
 
   return (
-    <div className="page-container">
-      <div className="left-panel">
-        <h1 style={{color: '#8bd450'}}>Little Alchemy 2 Recipe</h1>
-        <div className='panel-section'>
-          <AutoCompleteInput options={elements}   onSelect={setSelectedElement}></AutoCompleteInput>
-        </div>
-        <div className="panel-section">
-            <label className="section-title">Algorithm</label>
-            <div className="radio-group">
-                <label className="radio-option" style={{color: 'white'}}>
-                    <input 
-                    type="radio" 
-                    name="option" 
-                    value="dfs"
-                    checked={strategy === 'dfs'}
-                    onChange={() => setStrategy('dfs')}/>
-                    DFS
-                </label>
-                <label className="radio-option" style={{color: 'white'}}>
-                    <input 
-                    type="radio" 
-                    name="option"
-                    value="bfs"
-                    checked={strategy === 'bfs'}
-                    onChange={() => setStrategy('bfs')}/>
-                    BFS
-                </label>
-            </div>
-        </div>
-        <div className='panel-section'>
-          <div className="toggle-container">
-            <span className="toggle-label"><strong>Multiple Recipes</strong></span>
-            <label className="toggle-switch">
-              <input 
-                type="checkbox"
-                onChange={handleToggleChange}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+      <div className="page-container">
+        <div className= {darkMode? "left-panel left-panel-dark" : "left-panel left-panel-light"}>
+          <DarkModeToggleButton />
+          <h1 style={{color: darkMode? '#8bd450': '#de5857'}}>Little Alchemy 2 Recipe</h1>
+          <div className='panel-section'>
+            <AutoCompleteInput options={elements}   onSelect={setSelectedElement}></AutoCompleteInput>
           </div>
-          {showNumberInput && (
-            <div className="panel-section" style={{ marginTop: '10px' }}>
-              <label className="section-title">Number of Recipes</label>
-              <input
-                type="number"
-                className='text-input'
-                min="1"
-                max="10"
-                value={recipeCount}
-                onChange={(e) => setRecipeCount(Math.max(1, parseInt(e.target.value) || 1))}
-              />
+          <div className="panel-section">
+              <label className={darkMode ? "section-title section-title-dark" : "section-title section-title-light"}>Algorithm</label>
+              <div className="radio-group">
+                  <label className="radio-option" style={{color: darkMode? 'white' : 'black'}}>
+                      <input 
+                      type="radio" 
+                      name="option" 
+                      value="dfs"
+                      checked={strategy === 'dfs'}
+                      onChange={() => setStrategy('dfs')}
+                      className={darkMode? 'radio-dark': 'radio-light'}/>
+                      DFS
+                  </label>
+                  <label className="radio-option" style={{color: darkMode? 'white' : 'black'}}>
+                      <input 
+                      type="radio" 
+                      name="option"
+                      value="bfs"
+                      checked={strategy === 'bfs'}
+                      onChange={() => setStrategy('bfs')}
+                      className={darkMode? 'radio-dark': 'radio-light'}/>
+                      BFS
+                  </label>
+              </div>
+          </div>
+          <div className='panel-section'>
+            <div className="toggle-container">
+              <span className="toggle-label" style={{color: darkMode? 'white' : 'black'}}><strong>Multiple Recipes</strong></span>
+              <label className="toggle-switch">
+                <input 
+                  type="checkbox"
+                  onChange={handleToggleChange}
+                />
+                <span className={darkMode ? 'toggle-slider-dark' : 'toggle-slider-light'}></span>
+              </label>
+            </div>
+            {showNumberInput && (
+              <div className="panel-section" style={{ marginTop: '10px' }}>
+                <label className="section-title" style={{color: darkMode? 'white' : 'black'}}>Number of Recipes</label>
+                <input
+                  type="number"
+                  className='text-input'
+                  min="1"
+                  value={recipeCount}
+                  onChange={(e) => setRecipeCount(Math.max(1, parseInt(e.target.value) || 1))}
+                />
+              </div>
+            )}
+          </div>
+          <button className={darkMode ? "search-btn search-dark" : "search-btn search-light"} onClick={handleSearch}>Search</button>
+          {loading && (
+            <div className="loading-indicator">
+              <div className={darkMode ? "spinner spinner-dark" : "spinner spinner-light"} />
+              <p style={{color: darkMode? 'white' : 'black'}}>Loading...</p>
             </div>
           )}
-        </div>
-        <button className="search-btn" onClick={handleSearch}>Search</button>
-        {loading && (
-          <div className="loading-indicator">
-            <div className="spinner" />
-            <p>Loading...</p>
-          </div>
-        )}
 
-        {loadTime !== null && !loading && (
-          <p className="load-time" style={{color: 'white'}}>Loaded in {(loadTime / 1000).toFixed(2)}s</p>
-        )}
+          {loadTime !== null && !loading && (
+            <p className="load-time" style={{color: darkMode? 'white' : 'black'}}>Loaded in {(loadTime / 1000).toFixed(2)}s</p>
+          )}
+        </div>
+        <div className={darkMode ? "flow-container flow-dark" : "flow-container flow-light"}>
+          <RecipeFlow tree={recipeTree}/>
+        </div>
       </div>
-      <div className="flow-container">
-        <RecipeFlow tree={recipeTree}/>
-      </div>
-    </div>
   );
 }

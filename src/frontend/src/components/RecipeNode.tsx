@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Handle, NodeProps, Position, useNodeId, useStore } from 'reactflow';
 import { CSSProperties } from 'react';
+import { DarkModeContext } from './DarkModeProvider';
 
 export interface RecipeNodeType {
   name: string;
@@ -24,6 +25,13 @@ type ElementInfo = {
 };
 
 export default function RecipeNode({ data }: NodeProps<RecipeNodeData>) {
+  const context = useContext(DarkModeContext);
+
+  if (!context) {
+    throw new Error('No Context!');
+  }
+
+  const { darkMode } = context;
   const nodeId = useNodeId();
   const [elementInfo, setElementInfo] = useState<ElementInfo | null>(null);
 
@@ -45,9 +53,9 @@ export default function RecipeNode({ data }: NodeProps<RecipeNodeData>) {
     display: 'flex',
     alignItems: 'center',
     padding: 10,
-    border: '1px solid #ddd',
+    border: darkMode ? '2px solid #fff' : '2px solid #000',
     borderRadius: 5,
-    background: '#8bd450',
+    background: darkMode ? '#734f9a' : '#fbac4e',
     pointerEvents: 'none',
     maxWidth: '150px',
     minHeight: '40px',
@@ -76,8 +84,8 @@ export default function RecipeNode({ data }: NodeProps<RecipeNodeData>) {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', overflowWrap:'break-word', wordBreak: 'break-word', whiteSpace: 'normal', flex: 1 }} className="nodrag">
-        <strong>{data.name}</strong>
-        {elementInfo?.Type && <small style={{ color: '#666' }}>Tier: {elementInfo.Type}</small>}
+        <label style={{color: darkMode? 'white' : 'black'}}><strong>{data.name}</strong></label>  
+        {elementInfo?.Type && <small style={{color: darkMode? 'white' : 'black'}}>Tier: {elementInfo.Type}</small>}
       </div>
 
       {hasOutgoing && (

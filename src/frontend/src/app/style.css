@@ -1,7 +1,7 @@
 .search-button {
     padding: 10px 16px;
-    background-color: #4a90e2;
-    color: white;
+    background-color: #8de450;
+    color: #1d1a2f;
     border: none;
     border-radius: 4px;
     font-size: 14px;
@@ -9,8 +9,9 @@
     cursor: pointer;
     transition: background-color 0.2s;
     width: 300px;
+    outline: 2px solid #1d1a2f;
 }
 
 .search-button:hover {
-    background-color: #3a7bc8;
+    background-color: #3f6d4e;
 }

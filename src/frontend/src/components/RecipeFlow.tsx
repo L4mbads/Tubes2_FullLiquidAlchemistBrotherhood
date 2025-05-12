@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useCallback } from 'react';
+import React, { useMemo, useEffect, useCallback, useContext } from 'react';
 import ReactFlow, { 
   Background, 
   Node, 
@@ -11,6 +11,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import '../components/style.css';
 import RecipeNode, { RecipeNodeType } from './RecipeNode';
+import { DarkModeContext } from './DarkModeProvider';
 
 type RecipeFlowProps = {
   tree: RecipeNodeType | null;
@@ -28,6 +29,14 @@ const HEIGHT_SPACING = 175;
 const PADDING = 100;
 
 function RecipeFlowInner({ tree }: RecipeFlowProps) {
+  const context = useContext(DarkModeContext);
+
+  if (!context) {
+    throw new Error('No Context!');
+  }
+
+  const { darkMode } = context;
+
   const { setCenter } = useReactFlow();
 
   const buildTree = useCallback((recipe: RecipeNodeType): {
@@ -112,7 +121,7 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
             source: stepId,
             target: recipeId,
             type: 'smoothstep',
-            style: {stroke: 'white'}
+            style: {stroke: darkMode? 'white' : 'black', strokeWidth: '2px'}
           });
           
           layoutTree(subRecipe.ingredient1, depth + 1, currentX, stepId);
@@ -157,7 +166,7 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
           source: recipeId,
           target: parentId,
           type: 'smoothstep',
-          style: {stroke: 'white'}
+          style: {stroke: darkMode? 'white' : 'black', strokeWidth: '2px'}
         });
       }
       
@@ -170,7 +179,7 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
     const rootId = 'node_0';
     
     return { nodes, edges, rootId, bounds };
-  }, []);
+  }, [darkMode]);
 
   const { nodes, edges, rootId, bounds } = useMemo(() => {
     if (!tree) return { nodes: [], edges: [], rootId: '', bounds: { minX: 0, minY: 0, maxX: 0, maxY: 0 } };
@@ -210,7 +219,7 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
         position="bottom-left" 
         pannable 
         zoomable 
-        style={{ width: 200, height: 150, backgroundColor: '#734f9a' }} 
+        style={{ width: 200, height: 150, backgroundColor: darkMode ? '#734f9a': '#fbac4e' }} 
         nodeColor="#1d1a2f"
       />
       <Background 
