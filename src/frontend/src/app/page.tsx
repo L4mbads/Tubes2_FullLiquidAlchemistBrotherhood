@@ -26,14 +26,14 @@ const Page: React.FC = () => {
   }
 
   const { darkMode } = context;  
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const darkVideoRef = useRef<HTMLVideoElement>(null);
+  const lightVideoRef = useRef<HTMLVideoElement>(null);
   const [isStarting, setIsStarting] = useState(false);
   const router = useRouter();
 
   // Play the video once on mount
   useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
+  const video = darkMode ? darkVideoRef.current : lightVideoRef.current;    if (video) {
       video.play().catch(error => {
         console.error("Background video playback failed:", error);
       });
@@ -42,10 +42,8 @@ const Page: React.FC = () => {
 
   // Handle acceleration
   useEffect(() => {
-    if (!isStarting || !videoRef.current) return;
-
-    const video = videoRef.current;
-    let rate = 1;
+    const video = darkMode ? darkVideoRef.current : lightVideoRef.current;    let rate = 1;
+    if (!isStarting || !video) return;
     video.playbackRate = rate;
 
     const rampInterval = setInterval(() => {
@@ -70,7 +68,7 @@ const Page: React.FC = () => {
   return (
       <div className="relative w-screen h-screen overflow-hidden bg-black" style={{color: 'black'}}>
         <video
-          ref={videoRef}
+          ref={darkVideoRef}
           className="absolute top-0 left-0 w-full h-full object-cover"
           autoPlay
           loop
@@ -82,7 +80,7 @@ const Page: React.FC = () => {
           Your browser does not support the video tag.
         </video>
         <video
-          ref={videoRef}
+          ref={lightVideoRef}
           className="absolute top-0 left-0 w-full h-full object-cover"
           autoPlay
           loop
