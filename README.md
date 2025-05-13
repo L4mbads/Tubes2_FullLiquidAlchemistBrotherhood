@@ -30,28 +30,19 @@
 **Little Alchemist 2 Recipe Finder**: Sebuah program yang dapat mencari resep suatu elemen pada permainan "Little Alchemy 2"
 
 
-## ⚙️ Error Calculation Features
-  1. Max Pixel Difference
-  2. Mean Absolute Differece (MAD)
-  3. Variance
-  4. Entropy
-  5. SSIM
-
-
 ## 🛠️ Installation
 
 ### Prerequisites
 
-- [.NET SDK 8.0 or later](https://dotnet.microsoft.com/en-us/download) installed  
-- A C#-compatible IDE or text editor (e.g., [Visual Studio](https://visualstudio.microsoft.com/), [Rider](https://www.jetbrains.com/rider/), or [VS Code](https://code.visualstudio.com/))
+- [Docker](https://dotnet.microsoft.com/en-us/download) is installed  
 
 ### Steps
 
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/Arlow5761/Tucil2_13523123_13523161.git
-   cd Tucil2_13523123_13523161
+   git clone https://github.com/L4mbads/Tubes2_FullLiquidAlchemistBrotherhood.git
+   cd Tubes2_FullLiquidAlchemistBrotherhood
    ```
 
 2. **Restore Dependencies**
