@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import '@/app/search/style.css'
 import axios from 'axios';
@@ -8,12 +9,26 @@ import AutoCompleteInput from '@/components/AutoCompleteInput';
 import { RecipeNodeType } from '@/components/RecipeNode';
 import DarkModeToggleButton from '@/components/DarkModeToggleButton';
 import { DarkModeContext } from '@/components/DarkModeProvider';
+import localFont from 'next/font/local';
+
+const sybreFont = localFont({
+  src: '../../fonts/Sybre.ttf',
+  variable: '--font-sybre',
+  display: 'swap',
+});
+
+const futronsFont = localFont({
+  src: '../../fonts/Futrons Demo.otf',
+  variable: '--font-futrons',
+  display: 'swap',
+})
 
 const RecipeFlow = dynamic(() => import('../../components/RecipeFlow'), {
   ssr: false,
 });
 
 export default function Page() {
+  const router = useRouter();
   const context = useContext(DarkModeContext);
 
   if (!context) {
@@ -126,7 +141,7 @@ export default function Page() {
       <div className="page-container">
         <div className= {darkMode? "left-panel left-panel-dark" : "left-panel left-panel-light"}>
           <DarkModeToggleButton />
-          <h1 style={{color: darkMode? '#8bd450': '#de5857'}}>Little Alchemy 2 Recipe</h1>
+          <h1 className={sybreFont.className} style={{color: darkMode? '#8bd450': '#de5857', fontSize: 16, userSelect: 'none', cursor: 'pointer'}} onClick={() => router.push('/')}>Little Alchemy 2 Recipe</h1>
           <div className='panel-section'>
             <AutoCompleteInput options={elements}   onSelect={setSelectedElement}></AutoCompleteInput>
           </div>
@@ -190,7 +205,7 @@ export default function Page() {
               <span className={darkMode ? 'toggle-slider-dark' : 'toggle-slider-light'}></span>
             </label>
           </div>
-          <button className={darkMode ? "search-btn search-dark" : "search-btn search-light"} onClick={useLiveSearch ? handleLiveSearch : handleSearch}>Search</button>
+          <button className={darkMode ? "search-btn search-dark" : "search-btn search-light"} onClick={useLiveSearch ? handleLiveSearch : handleSearch}><div className={futronsFont.className}>Search</div></button>
           {loading && (
             <div className="loading-indicator">
               <div className={darkMode ? "spinner spinner-dark" : "spinner spinner-light"} />

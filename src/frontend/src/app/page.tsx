@@ -38,7 +38,7 @@ const Page: React.FC = () => {
         console.error("Background video playback failed:", error);
       });
     }
-  }, []);
+  }, [darkMode]);
 
   // Handle acceleration
   useEffect(() => {
@@ -59,7 +59,7 @@ const Page: React.FC = () => {
     }, 100);
 
     return () => clearInterval(rampInterval);
-  }, [isStarting, router]);
+  }, [isStarting, router, darkMode]);
 
   const handleStart = () => {
     setIsStarting(true);
@@ -98,8 +98,9 @@ const Page: React.FC = () => {
               <div className="items-center" style={{background: '#1d1a2f', borderRadius: 8, paddingTop: 2}}><DarkModeToggleButton/></div>
               <div className={sybreFont.className}>
                 <h1 className={darkMode ? 'title-label title-dark' : 'title-label title-light'}>
-                  Full Liquid Alchemist
+                  Little Alchemy 2 Recipes Finder
                 </h1>
+                <h3 className={darkMode ? 'subtitle-label title-dark' : 'subtitle-label title-light'}> by FullLiquid Alchemist </h3>
               </div>
               <button
                 onClick={handleStart}
