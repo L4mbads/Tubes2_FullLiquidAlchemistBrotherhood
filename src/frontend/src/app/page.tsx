@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import '@/app/style.css';
 import DarkModeToggleButton from '@/components/DarkModeToggleButton';
 import localFont from 'next/font/local';
+import { DarkModeContext } from '@/components/DarkModeProvider';
 
 const sybreFont = localFont({
   src: '../fonts/Sybre.ttf',
@@ -18,6 +19,13 @@ const futronsFont = localFont({
 })
 
 const Page: React.FC = () => {
+  const context = useContext(DarkModeContext);
+
+  if (!context) {
+    throw new Error('No Context!');
+  }
+
+  const { darkMode } = context;  
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isStarting, setIsStarting] = useState(false);
   const router = useRouter();
@@ -68,9 +76,21 @@ const Page: React.FC = () => {
           loop
           muted
           playsInline
-          style={{backgroundColor: 'black'}}
+          style={{backgroundColor: 'black', opacity: darkMode ? '1' : '0'}}
         >
           <source src="/Road.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <video
+          ref={videoRef}
+          className="absolute top-0 left-0 w-full h-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{backgroundColor: 'black', opacity: darkMode ? '0' : '1'}}
+        >
+          <source src="/Road2.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
@@ -79,13 +99,13 @@ const Page: React.FC = () => {
             <>
               <div className="items-center" style={{background: '#1d1a2f', borderRadius: 8, paddingTop: 2}}><DarkModeToggleButton/></div>
               <div className={sybreFont.className}>
-                <h1 style={{color: '#8de450', fontSize: 60, WebkitTextStroke: '3px', WebkitTextStrokeColor: '#1d1a2f'}} className='font-bold mb-6 select-none'>
+                <h1 className={darkMode ? 'title-label title-dark' : 'title-label title-light'}>
                   Full Liquid Alchemist
                 </h1>
               </div>
               <button
                 onClick={handleStart}
-                className="search-button"
+                className={darkMode ? "search-button search-dark" : "search-button search-light"} 
               >
                 <div className={futronsFont.className}>Start Searching</div>
               </button>
