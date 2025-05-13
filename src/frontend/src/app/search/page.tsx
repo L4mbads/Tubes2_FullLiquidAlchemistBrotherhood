@@ -57,6 +57,9 @@ export default function Page() {
 
   const [useLiveSearch, setUseLiveSearch] = useState(false);
 
+  const [nodeCount, setNodeCount] = useState();
+  const [recipeFound, setRecipeFound] = useState();
+
   const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShowNumberInput(e.target.checked);
     if (!e.target.checked) {
@@ -80,7 +83,9 @@ export default function Page() {
         const end = performance.now();
         setLoadTime(end - start);
         console.log(res.data);
-        setRecipeTree(res.data);
+        setRecipeTree(res.data.tree);
+        setNodeCount(res.data.nodeCount);
+        setRecipeFound(res.data.recipeCount);
       })
       .catch(err => {
         let errorMessage = "Error fetching recipe.";
@@ -122,10 +127,13 @@ export default function Page() {
       handleSSEMessage(event.data);
     };
 
-    eventSource.addEventListener("done", () => {
+    eventSource.addEventListener("done", (event) => {
+      const parsed = JSON.parse(event.data);
       const end = performance.now();
       setLoadTime(end - start);
       setLoading(false);
+      setRecipeFound(parsed.recipeCount);
+      setNodeCount(parsed.nodeCount);
       eventSource.close();
     });
 
@@ -205,7 +213,7 @@ export default function Page() {
               <span className={darkMode ? 'toggle-slider-dark' : 'toggle-slider-light'}></span>
             </label>
           </div>
-          <button className={darkMode ? "search-btn search-dark" : "search-btn search-light"} onClick={useLiveSearch ? handleLiveSearch : handleSearch}><div className={futronsFont.className}>Search</div></button>
+          <button disabled={loading} className={darkMode ? "search-btn search-dark" : "search-btn search-light"} onClick={useLiveSearch ? handleLiveSearch : handleSearch}><div className={futronsFont.className}>Search</div></button>
           {loading && (
             <div className="loading-indicator">
               <div className={darkMode ? "spinner spinner-dark" : "spinner spinner-light"} />
@@ -214,7 +222,15 @@ export default function Page() {
           )}
 
           {loadTime !== null && !loading && (
-            <p className="load-time" style={{color: darkMode? 'white' : 'black'}}>Loaded in {(loadTime / 1000).toFixed(2)}s</p>
+            <p className="load-time" style={{color: darkMode? 'white' : 'black'}}>Duration: {(loadTime / 1000).toFixed(2)}s</p>
+          )}
+
+          {loadTime !== null && !loading && (
+            <p className="load-time" style={{color: darkMode? 'white' : 'black'}}>Node Count: {nodeCount}</p>
+          )}
+
+          {loadTime !== null && !loading && (
+            <p className="load-time" style={{color: darkMode? 'white' : 'black'}}>Recipe Found: {recipeFound}</p>
           )}
         </div>
         <div className={darkMode ? "flow-container flow-dark" : "flow-container flow-light"}>
