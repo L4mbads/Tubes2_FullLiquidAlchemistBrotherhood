@@ -1,12 +1,12 @@
 import React, { useMemo, useEffect, useCallback, useContext } from 'react';
-import ReactFlow, { 
-  Background, 
-  Node, 
-  Edge, 
-  Position, 
-  MiniMap, 
-  useReactFlow, 
-  ReactFlowProvider 
+import ReactFlow, {
+  Background,
+  Node,
+  Edge,
+  Position,
+  MiniMap,
+  useReactFlow,
+  ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import '../components/style.css';
@@ -53,22 +53,25 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
     const bounds: Bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
 
     const widthCache = new Map<RecipeNodeType, number>();
-    
+
     const calculateSubtreeWidth = (recipe: RecipeNodeType): number => {
+      if (recipe == null) {
+        return 0
+      }
       if (widthCache.has(recipe)) {
         return widthCache.get(recipe)!;
       }
-      
+
       if (!recipe.recipes || recipe.recipes.length === 0) {
         widthCache.set(recipe, 1);
         return 1;
       }
-      
+
       let totalWidth = 0;
       recipe.recipes.forEach(r => {
         totalWidth += calculateSubtreeWidth(r.ingredient1) + calculateSubtreeWidth(r.ingredient2);
       });
-      
+
       const width = Math.max(1, totalWidth);
       widthCache.set(recipe, width);
       return width;
@@ -80,15 +83,18 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
       xOffset: number,
       parentId: string | null = null
     ): { width: number; centerX: number } => {
+      if(recipe == null) {
+        return {width: 0, centerX: 0};
+      }
       const recipeId = `node_${nodesIdCounter++}`;
       let subtreeCenterX = xOffset;
-      
+
       const totalSubtreeWidth = widthCache.get(recipe) || 1;
-      
+
       if (recipe.recipes && recipe.recipes.length > 0) {
         let currentX = xOffset;
         const childrenCenters: number[] = [];
-        
+
         for (const subRecipe of recipe.recipes) {
           const w1 = widthCache.get(subRecipe.ingredient1) || 1;
           const w2 = widthCache.get(subRecipe.ingredient2) || 1;
@@ -96,7 +102,7 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
           const midX = currentX + (totalWidth * WIDTH_SPACING) / 2;
           const stepId = `step_${nodesIdCounter++}`;
           const stepY = -((depth + 0.5) * HEIGHT_SPACING);
-          
+
           nodes.push({
             id: stepId,
             type: 'default',
@@ -116,7 +122,7 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
             draggable: false,
             selectable: false,
           });
-          
+
           edges.push({
             id: `edge_${edgesIdCounter++}`,
             source: stepId,
@@ -124,43 +130,43 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
             type: 'smoothstep',
             style: {stroke: darkMode? 'white' : 'black', strokeWidth: '2px'}
           });
-          
+
           layoutTree(subRecipe.ingredient1, depth + 1, currentX, stepId);
           layoutTree(
-            subRecipe.ingredient2, 
-            depth + 1, 
-            currentX + w1 * WIDTH_SPACING, 
+            subRecipe.ingredient2,
+            depth + 1,
+            currentX + w1 * WIDTH_SPACING,
             stepId
           );
-          
+
           currentX += totalWidth * WIDTH_SPACING;
           childrenCenters.push(midX);
-          
+
           bounds.minX = Math.min(bounds.minX, midX);
           bounds.maxX = Math.max(bounds.maxX, midX);
           bounds.minY = Math.min(bounds.minY, stepY);
           bounds.maxY = Math.max(bounds.maxY, stepY);
         }
-        
+
         if (childrenCenters.length > 0) {
           subtreeCenterX = childrenCenters.reduce((sum, x) => sum + x, 0) / childrenCenters.length;
         }
       }
-      
+
       const nodeY = -depth * HEIGHT_SPACING;
-      
+
       nodes.push({
         id: recipeId,
         type: 'recipeNode',
         data: { name: recipe.name },
         position: { x: subtreeCenterX, y: nodeY },
       });
-      
+
       bounds.minX = Math.min(bounds.minX, subtreeCenterX);
       bounds.maxX = Math.max(bounds.maxX, subtreeCenterX);
       bounds.minY = Math.min(bounds.minY, nodeY);
       bounds.maxY = Math.max(bounds.maxY, nodeY);
-      
+
       if (parentId) {
         edges.push({
           id: `edge_${edgesIdCounter++}`,
@@ -170,15 +176,15 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
           style: {stroke: darkMode? 'white' : 'black', strokeWidth: '2px'}
         });
       }
-      
+
       return { width: totalSubtreeWidth, centerX: subtreeCenterX };
     };
 
     calculateSubtreeWidth(recipe);
-    
+
     layoutTree(recipe, 0, 0);
     const rootId = 'node_0';
-    
+
     return { nodes, edges, rootId, bounds };
   }, [darkMode]);
 
@@ -193,13 +199,13 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
         const timer = setTimeout(() => {
           const viewportWidth = bounds.maxX - bounds.minX + (2 * PADDING);
           const centerX = bounds.minX + (viewportWidth / 2) - PADDING;
-          
+
           setCenter(centerX, 0, {
             zoom: 1.5,
             duration: 800,
           });
         }, 100);
-        
+
         return () => clearTimeout(timer);
       }
     }
@@ -218,16 +224,16 @@ function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
         [bounds.maxX + 500, bounds.maxY + 500],
       ]}
     >
-      <MiniMap 
-        position="bottom-left" 
-        pannable 
-        zoomable 
-        style={{ width: 200, height: 150, backgroundColor: darkMode ? '#734f9a': '#fbac4e' }} 
+      <MiniMap
+        position="bottom-left"
+        pannable
+        zoomable
+        style={{ width: 200, height: 150, backgroundColor: darkMode ? '#734f9a': '#fbac4e' }}
         nodeColor="#1d1a2f"
       />
-      <Background 
-        color="#734f9a" 
-        lineWidth={1} 
+      <Background
+        color="#734f9a"
+        lineWidth={1}
       />
     </ReactFlow>
   );
