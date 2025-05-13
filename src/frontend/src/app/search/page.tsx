@@ -40,6 +40,8 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [loadTime, setLoadTime] = useState<number | null>(null);
 
+  const [useLiveSearch, setUseLiveSearch] = useState(false);
+
   const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShowNumberInput(e.target.checked);
     if (!e.target.checked) {
@@ -77,6 +79,48 @@ export default function Page() {
       })
       .finally(() => setLoading(false));
   };
+
+  const handleSSEMessage = (data: string) => {
+    try {
+      const parsed = JSON.parse(data);
+      setRecipeTree(parsed);
+      console.log(parsed);
+    } catch (error) {
+      console.error("Invalid SSE data:", error);
+    }
+  };
+
+  const handleLiveSearch = () => {
+    if (!selectedElement) {
+      alert("Please select an element.");
+      return;
+    }
+
+    setLoading(true);
+    setLoadTime(null);
+    const start = performance.now();
+
+    const url = `http://localhost:8000/api/go/liverecipe?element=${encodeURIComponent(selectedElement)}&strategy=${strategy}&count=${recipeCount}`;
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+      handleSSEMessage(event.data);
+    };
+
+    eventSource.addEventListener("done", () => {
+      const end = performance.now();
+      setLoadTime(end - start);
+      setLoading(false);
+      eventSource.close();
+    });
+
+    eventSource.onerror = () => {
+      console.error("SSE connection error.");
+      eventSource.close();
+      setLoading(false);
+    };
+  };
+
 
   return (
       <div className="page-container">
@@ -135,7 +179,18 @@ export default function Page() {
               </div>
             )}
           </div>
-          <button className={darkMode ? "search-btn search-dark" : "search-btn search-light"} onClick={handleSearch}>Search</button>
+          <div className="toggle-container">
+            <span className='toggle-label'style={{color: darkMode ? 'white' : 'black'}}><strong>Live Visualization</strong></span>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={useLiveSearch}
+                onChange={() => setUseLiveSearch(prev => !prev)}
+              />
+              <span className={darkMode ? 'toggle-slider-dark' : 'toggle-slider-light'}></span>
+            </label>
+          </div>
+          <button className={darkMode ? "search-btn search-dark" : "search-btn search-light"} onClick={useLiveSearch ? handleLiveSearch : handleSearch}>Search</button>
           {loading && (
             <div className="loading-indicator">
               <div className={darkMode ? "spinner spinner-dark" : "spinner spinner-light"} />
@@ -148,7 +203,7 @@ export default function Page() {
           )}
         </div>
         <div className={darkMode ? "flow-container flow-dark" : "flow-container flow-light"}>
-          <RecipeFlow tree={recipeTree}/>
+          <RecipeFlow tree={recipeTree} isLive={useLiveSearch}/>
         </div>
       </div>
   );

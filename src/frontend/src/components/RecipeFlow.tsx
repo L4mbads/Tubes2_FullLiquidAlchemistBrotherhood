@@ -15,6 +15,7 @@ import { DarkModeContext } from './DarkModeProvider';
 
 type RecipeFlowProps = {
   tree: RecipeNodeType | null;
+  isLive: boolean,
 };
 
 type Bounds = {
@@ -28,7 +29,7 @@ const WIDTH_SPACING = 175;
 const HEIGHT_SPACING = 175;
 const PADDING = 100;
 
-function RecipeFlowInner({ tree }: RecipeFlowProps) {
+function RecipeFlowInner({ tree, isLive }: RecipeFlowProps) {
   const context = useContext(DarkModeContext);
 
   if (!context) {
@@ -187,20 +188,22 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
   }, [tree, buildTree]);
 
   useEffect(() => {
-    if (rootId && bounds.minX !== Infinity) {
-      const timer = setTimeout(() => {
-        const viewportWidth = bounds.maxX - bounds.minX + (2 * PADDING);
-        const centerX = bounds.minX + (viewportWidth / 2) - PADDING;
+    if (!isLive) {
+      if (rootId && bounds.minX !== Infinity) {
+        const timer = setTimeout(() => {
+          const viewportWidth = bounds.maxX - bounds.minX + (2 * PADDING);
+          const centerX = bounds.minX + (viewportWidth / 2) - PADDING;
+          
+          setCenter(centerX, 0, {
+            zoom: 1.5,
+            duration: 800,
+          });
+        }, 100);
         
-        setCenter(centerX, 0, {
-          zoom: 1.5,
-          duration: 800,
-        });
-      }, 100);
-      
-      return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [rootId, setCenter, bounds]);
+  }, [rootId, setCenter, bounds, isLive]);
 
   return (
     <ReactFlow
@@ -209,7 +212,7 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
       nodeTypes={{ recipeNode: RecipeNode }}
       nodeOrigin={[0.5, 0.5]}
       onlyRenderVisibleElements
-      fitView={false}
+      fitView={isLive ? true : false}
       translateExtent={[
         [bounds.minX - 500, bounds.minY - 500],
         [bounds.maxX + 500, bounds.maxY + 500],
@@ -230,11 +233,11 @@ function RecipeFlowInner({ tree }: RecipeFlowProps) {
   );
 }
 
-export default function RecipeFlow({ tree }: RecipeFlowProps) {
+export default function RecipeFlow({ tree, isLive }: RecipeFlowProps) {
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <ReactFlowProvider>
-        <RecipeFlowInner tree={tree} />
+        <RecipeFlowInner tree={tree} isLive={isLive} />
       </ReactFlowProvider>
     </div>
   );
