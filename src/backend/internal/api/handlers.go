@@ -1,9 +1,12 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -71,13 +74,15 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		if strategy == "dfs" {
-			// ctx := context.Background()
-			// sem := make(chan struct{}, 10)
-			root, err := models.DFS(db, nil, element, count)
+			// root, err := models.DFS(db, nil, element, count)
+			ctx := context.Background()
+			sem := make(chan struct{}, runtime.NumCPU()*4)
+			root, err := models.DFS(ctx, db, nil, element, count, sem)
 			if err != nil {
 				http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
+			models.CutTree(root)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(root)
 
@@ -91,6 +96,8 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(root)
 		}
+		fmt.Println("done")
+
 	}
 }
 
