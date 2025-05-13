@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,19 +23,20 @@ type RecipeData struct {
 	RecipeCount int          `json:"recipeCount"`
 }
 
-var nodeCount int
+var nodeCount atomic.Uint64
 
 func DFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (RecipeData, error) {
-	nodeCount = 0
+	nodeCount.Store(0)
 	ctx := context.Background()
 	sem := make(chan struct{}, runtime.NumCPU())
 	root, err := DFSRecursiveLive(ctx, db, nil, element, targetCount, sem, emit, 0, true)
 	CutTree(root)
-	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, err
+	return RecipeData{root, int(nodeCount.Load()), sumSlice(root.ValidRecipeIdx)}, err
 }
 
 func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}, emit func(*ElementNode), idx int, isLeft bool) (*ElementNode, error) {
 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
+	nodeCount.Add(1)
 	if parentNode != nil {
 		if isLeft {
 			parentNode.Recipes[idx].Ingredient1 = node
@@ -196,17 +198,17 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 }
 
 func DFS(db *sql.DB, element string, targetCount int) (RecipeData, error) {
-	nodeCount = 0
+	nodeCount.Store(0)
 	ctx := context.Background()
 	sem := make(chan struct{}, runtime.NumCPU())
 	root, err := DFSRecursive(ctx, db, nil, element, targetCount, sem)
 	CutTree(root)
-	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, err
+	return RecipeData{root, int(nodeCount.Load()), sumSlice(root.ValidRecipeIdx)}, err
 }
 
 func DFSRecursive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}) (*ElementNode, error) {
 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
-	nodeCount++
+	nodeCount.Add(1)
 
 	if isBasicElement(element) {
 		// fmt.Printf("%s leaf\n", element)
@@ -501,9 +503,10 @@ func DFSRecursive(ctx context.Context, db *sql.DB, parentNode *ElementNode, elem
 //		return node, nil
 //	}
 func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (RecipeData, error) {
-	nodeCount = 0
+	nodeCount.Store(0)
 	// initialize root node
 	root := &ElementNode{Name: element, Parent: nil, IsValid: false}
+	nodeCount.Add(1)
 
 	// use queue for BFS
 	queue := RecipeQueue{}
@@ -512,11 +515,11 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 	var wg sync.WaitGroup
 
 	for !queue.isEmpty() {
-		nodeCount += 2
 
 		currentRecipe := queue.dequeue()
 		currentNode1 := currentRecipe.Ingredient1
 		currentNode2 := currentRecipe.Ingredient2
+		nodeCount.Add(2)
 
 		branchHitTarget := false
 		nodeptr := currentNode1
@@ -541,13 +544,11 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 			currentNode2.ValidRecipeIdx = append(currentNode2.ValidRecipeIdx, 1)
 			currentNode1.setValid()
 			currentNode2.setValid()
+			nodeCount.Add(2)
 			emit(root)
 			time.Sleep(1000 * time.Millisecond)
 			continue
 		}
-
-		// processNodeBFS(db, currentNode1, &queue)
-		// processNodeBFS(db, currentNode2, &queue)
 
 		wg.Add(2)
 		go func(node *ElementNode) {
@@ -574,13 +575,14 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 	// cut invalid subtrees
 	CutTree(root)
 	emit(root)
-	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, nil
+	return RecipeData{root, int(nodeCount.Load()), sumSlice(root.ValidRecipeIdx)}, nil
 }
 
 func BFS(db *sql.DB, element string, targetCount int) (RecipeData, error) {
-	nodeCount = 0
+	nodeCount.Store(0)
 	// initialize root node
 	root := &ElementNode{Name: element, Parent: nil, IsValid: false}
+	nodeCount.Add(1)
 
 	// use queue for BFS
 	queue := RecipeQueue{}
@@ -589,11 +591,11 @@ func BFS(db *sql.DB, element string, targetCount int) (RecipeData, error) {
 	var wg sync.WaitGroup
 
 	for !queue.isEmpty() {
-		nodeCount += 2
 		currentRecipe := queue.dequeue()
 
 		currentNode1 := currentRecipe.Ingredient1
 		currentNode2 := currentRecipe.Ingredient2
+		nodeCount.Add(2)
 
 		branchHitTarget := false
 		nodeptr := currentNode1
@@ -618,6 +620,7 @@ func BFS(db *sql.DB, element string, targetCount int) (RecipeData, error) {
 			currentNode2.ValidRecipeIdx = append(currentNode2.ValidRecipeIdx, 1)
 			currentNode1.setValid()
 			currentNode2.setValid()
+			nodeCount.Add(2)
 			continue
 		}
 
@@ -646,7 +649,7 @@ func BFS(db *sql.DB, element string, targetCount int) (RecipeData, error) {
 
 	// cut invalid subtrees
 	CutTree(root)
-	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, nil
+	return RecipeData{root, int(nodeCount.Load()), sumSlice(root.ValidRecipeIdx)}, nil
 }
 
 func processNodeBFS(db *sql.DB, node *ElementNode, queue *RecipeQueue) {
