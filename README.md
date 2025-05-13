@@ -29,6 +29,31 @@
 
 **Little Alchemist 2 Recipe Finder**: Sebuah program yang dapat mencari resep suatu elemen pada permainan "Little Alchemy 2"
 
+Depth-First Search (DFS)
+------------------------
+DFS is implemented using recursion and supports multithreading to process recipe ingredients in parallel. However, because ingredient 2 cannot wait for ingredient 1’s result, limiting the number of recipe branches (in multi-recipe mode) becomes challenging. This can cause the number of discovered recipes to exceed the target.
+
+DFS Flow:
+1. If the target element is basic, return a terminal `ElementNode`.
+2. For each possible recipe:
+   - If root already contains the target number of recipes, break.
+   - Call the search function recursively:
+     - Ingredient 1 → in a new thread
+     - Ingredient 2 → in the current thread
+3. Return the root `ElementNode`.
+
+Breadth-First Search (BFS)
+--------------------------
+BFS explores all recipe possibilities level-by-level using a queue. It's ideal for shortest-path searches, stopping early once valid paths are found. To enable parallelism, each recipe can be processed in a separate thread.
+
+BFS Flow:
+1. Add the target element into the queue.
+2. For each element dequeued:
+   - Get all recipes for that element.
+   - If the accumulated recipe count ≥ target, exit.
+   - Process both ingredients in parallel, enqueue resulting nodes.
+3. Prune invalid branches and return the root `ElementNode`.
+
 
 ## 🛠️ Installation
 
