@@ -21,7 +21,7 @@ func getElementType(index int) int {
 	}
 }
 
-func ScrapeElements(dbConn *sql.DB) {
+func ScrapeElements(dbConn *sql.DB) error {
 	db.ClearDB(dbConn)
 
 	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
@@ -51,7 +51,8 @@ func ScrapeElements(dbConn *sql.DB) {
 
 			err := db.InsertElement(dbConn, element, imgUrl, elementType)
 			if err != nil {
-				panic(err)
+				log.Printf("Error inserting element '%s': %v", element, err)
+				return
 			}
 
 			h.ForEach("td:nth-of-type(2) li", func(_ int, li *colly.HTMLElement) {
@@ -83,12 +84,17 @@ func ScrapeElements(dbConn *sql.DB) {
 	})
 
 	c.OnRequest(func(r *colly.Request) {
-		fmt.Print("Visiting ", r.URL)
+		fmt.Println("Visiting ", r.URL)
 	})
 
 	c.OnError(func(r *colly.Response, e error) {
 		fmt.Print(e.Error())
 	})
 
-	c.Visit(url)
+	if err := c.Visit(url); err != nil {
+		return fmt.Errorf("failed to visit URL: %w", err)
+	}
+	fmt.Printf("Scraping success: %d elements, %d recipes\n", elementCounter, recipeCounter)
+	return nil
+	// c.Visit(url)
 }

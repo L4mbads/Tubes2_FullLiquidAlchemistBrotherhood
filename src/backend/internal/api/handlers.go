@@ -10,9 +10,22 @@ import (
 
 	"flab/internal/db"
 	"flab/internal/models"
+	"flab/internal/scraper"
 
 	"github.com/gorilla/mux"
 )
+
+func ScrapeElementsHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := scraper.ScrapeElements(dbConn)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Scraping completed successfully"))
+	}
+}
 
 func GetElementsHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -17,7 +17,5 @@ func main() {
 	// cors
 	enhancedRouter := api.EnableCORS(api.JSONContentTypeMiddleware(router))
 
-	// scraper.ScrapeElements(dbConn)
-
 	log.Fatal(http.ListenAndServe(":8000", enhancedRouter))
 }

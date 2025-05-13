@@ -8,6 +8,8 @@ import (
 
 func NewRouter(dbConn *sql.DB) *mux.Router {
 	router := mux.NewRouter()
+	router.HandleFunc("/api/go/scrape", ScrapeElementsHandler(dbConn)).Methods("GET")
+
 	router.HandleFunc("/api/go/elements", GetElementsHandler(dbConn)).Methods("GET")
 	router.HandleFunc("/api/go/recipes", GetRecipesHandler(dbConn)).Methods("GET")
 
