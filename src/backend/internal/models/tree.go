@@ -515,13 +515,6 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 		nodeCount += 2
 
 		currentRecipe := queue.dequeue()
-
-		if currentRecipe.Ingredient1 != nil {
-			fmt.Print(currentRecipe.Ingredient1.Name)
-		}
-		if currentRecipe.Ingredient1 != nil {
-			fmt.Println(currentRecipe.Ingredient2.Name)
-		}
 		currentNode1 := currentRecipe.Ingredient1
 		currentNode2 := currentRecipe.Ingredient2
 
