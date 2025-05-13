@@ -57,8 +57,12 @@
   border-bottom: 1px solid #999;
 }
 
-.element-option:hover {
+.element-option-dark:hover {
   background-color: #363737;
+}
+
+.element-option-light:hover {
+  background-color: #ececec;
 }
 
 .element-image {

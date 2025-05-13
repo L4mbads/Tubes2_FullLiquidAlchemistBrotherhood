@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -71,17 +72,20 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		if strategy == "dfs" {
-			// ctx := context.Background()
-			// sem := make(chan struct{}, 10)
-			root, err := models.DFS(db, nil, element, count)
+			fmt.Println("DFS")
+
+			root, err := models.DFS(db, element, count)
 			if err != nil {
 				http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(root)
 
 		} else {
+			fmt.Println("BFS")
+
 			root, err := models.BFS(db, element, count)
 			if err != nil {
 				http.Error(w, createErrorResponse(err.Error(), http.StatusInternalServerError), http.StatusInternalServerError)
@@ -91,6 +95,8 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(root)
 		}
+		fmt.Println("done")
+
 	}
 }
 

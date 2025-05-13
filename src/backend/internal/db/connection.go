@@ -15,9 +15,9 @@ func ConnectDB() *sql.DB {
 	}
 
 	// Configure the connection pool
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(0)
+	// db.SetMaxOpenConns(10)
+	// db.SetMaxIdleConns(5)
+	// db.SetConnMaxLifetime(0)
 
 	return db
 }

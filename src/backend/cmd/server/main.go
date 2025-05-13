@@ -3,7 +3,6 @@ package main
 import (
 	"flab/internal/api"
 	"flab/internal/db"
-	"flab/internal/scraper"
 	"log"
 	"net/http"
 )
@@ -18,7 +17,7 @@ func main() {
 	// cors
 	enhancedRouter := api.EnableCORS(api.JSONContentTypeMiddleware(router))
 
-	scraper.ScrapeElements(dbConn)
+	// scraper.ScrapeElements(dbConn)
 
 	log.Fatal(http.ListenAndServe(":8000", enhancedRouter))
 }

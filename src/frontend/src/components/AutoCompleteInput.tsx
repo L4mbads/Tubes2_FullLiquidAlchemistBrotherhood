@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import Image from 'next/image';
 import './style.css';
+import { DarkModeContext } from './DarkModeProvider';
 
 type Option = {
   Name: string;
@@ -60,8 +61,15 @@ export default function AutoCompleteInput({ options, onSelect }: AutoCompleteInp
 }
 
 function ElementOptions({ option, onSelect }: ElementOptionsProps) {
+  const context = useContext(DarkModeContext);
+
+  if (!context) {
+    throw new Error('No Context!');
+  }
+
+  const { darkMode } = context;
   return (
-    <div className="element-option" style={{color: 'white'}} onClick={() => onSelect(option.Name)}>
+    <div className={darkMode ? "element-option element-option-dark" : "element-option element-option-light"} onClick={() => onSelect(option.Name)}>
     <Image
     src={option.ImageUrl}
     alt={option.Name}
@@ -71,8 +79,8 @@ function ElementOptions({ option, onSelect }: ElementOptionsProps) {
     loading="lazy"
     />
       <div className="element-details">
-        <div className="element-name" style={{color: 'white'}}>{option.Name}</div>
-        <div className="element-tier" style={{color: 'white'}}>Tier: {option.Type}</div>
+        <div className="element-name" style={{color: darkMode ? 'white' : 'black'}}>{option.Name}</div>
+        <div className="element-tier" style={{color: darkMode ? 'white' : 'black'}}>Tier: {option.Type}</div>
       </div>
     </div>
   );

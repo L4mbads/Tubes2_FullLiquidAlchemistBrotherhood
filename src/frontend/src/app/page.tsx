@@ -2,6 +2,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import '@/app/style.css';
+import DarkModeToggleButton from '@/components/DarkModeToggleButton';
+import localFont from 'next/font/local';
+
+const sybreFont = localFont({
+  src: '../fonts/Sybre.ttf',
+  variable: '--font-sybre',
+  display: 'swap',
+});
+
+const futronsFont = localFont({
+  src: '../fonts/Futrons Demo.otf',
+  variable: '--font-futrons',
+  display: 'swap',
+})
 
 const Page: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -46,40 +60,40 @@ const Page: React.FC = () => {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black" style={{color: 'black'}}>
-      <video
-        ref={videoRef}
-        className="absolute top-0 left-0 w-full h-full object-cover"
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{backgroundColor: 'black'}}
-      >
-        <source src="/Road.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+      <div className="relative w-screen h-screen overflow-hidden bg-black" style={{color: 'black'}}>
+        <video
+          ref={videoRef}
+          className="absolute top-0 left-0 w-full h-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{backgroundColor: 'black'}}
+        >
+          <source src="/Road.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
 
-      <div style={{color: 'white', paddingTop: 50}} className="relative z-10 flex flex-col items-center w-full h-full text-center px-4">
-        {!isStarting ? (
-          <>
-            <h1 style={{color: 'white'}} className="text-4xl md:text-6xl font-bold mb-6">
-              Full Liquid Alchemist
-            </h1>
-            <button
-              onClick={handleStart}
-              className="search-button"
-            >
-              Start Searching
-            </button>
-          </>
-        ) : (
-          <h1 style={{color: 'white'}} className="text-4xl md:text-6xl font-bold mb-6">
-            Accelerating...
-          </h1>
-        )}
+        <div style={{color: 'white', paddingTop: 50}} className="relative z-10 flex flex-col items-center justify-center w-full h-full text-center px-4">
+          {!isStarting ? (
+            <>
+              <div className="items-center" style={{background: '#1d1a2f', borderRadius: 8, paddingTop: 2}}><DarkModeToggleButton/></div>
+              <div className={sybreFont.className}>
+                <h1 style={{color: '#8de450', fontSize: 60, WebkitTextStroke: '3px', WebkitTextStrokeColor: '#1d1a2f'}} className='font-bold mb-6 select-none'>
+                  Full Liquid Alchemist
+                </h1>
+              </div>
+              <button
+                onClick={handleStart}
+                className="search-button"
+              >
+                <div className={futronsFont.className}>Start Searching</div>
+              </button>
+            </>
+          ) : (<></>
+          )}
+        </div>
       </div>
-    </div>
   );
 };
 
