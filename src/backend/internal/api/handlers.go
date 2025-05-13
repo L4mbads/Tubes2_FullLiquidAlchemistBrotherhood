@@ -154,12 +154,16 @@ func GetLiveRecipeHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		if strategy == "dfs" {
-			models.DFSLive(db, element, count, emit)
+			out, _ := models.DFSLive(db, element, count, emit)
+			data, _ := json.Marshal(out)
+			fmt.Fprintf(w, "event: done\ndata: %s\n\n", data)
+			flusher.Flush()
 		} else {
-			models.BFSLive(db, element, count, emit)
+			out, _ := models.BFSLive(db, element, count, emit)
+			data, _ := json.Marshal(out)
+			fmt.Fprintf(w, "event: done\ndata: %s\n\n", data)
+			flusher.Flush()
 		}
-		fmt.Fprintf(w, "event: done\ndata: {}\n\n")
-		flusher.Flush()
 	}
 }
 
