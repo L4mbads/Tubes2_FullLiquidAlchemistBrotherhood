@@ -321,6 +321,14 @@ func DFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}, emit func(*ElementNode)) (*ElementNode, error) {
 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
 
+	root := node
+	for root.Parent != nil {
+		root = root.Parent
+	}
+
+	emit(root)
+	time.Sleep(1000 * time.Millisecond)
+
 	if isBasicElement(element) {
 		// fmt.Printf("%s leaf\n", element)
 		node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
@@ -372,10 +380,6 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 	targetCount = int(math.Ceil(float64(targetCount) / float64(len(recipes))))
 
 	i := 0
-	root := node
-	for root.Parent != nil {
-		root = root.Parent
-	}
 
 	tryAcquire := func() bool {
 		// return true
@@ -395,7 +399,6 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 		if i > 0 && tmp < 1 {
 			break
 		}
-		time.Sleep(200 * time.Millisecond)
 
 		recipeNode := &RecipeNode{}
 		node.Recipes = append(node.Recipes, recipeNode)
@@ -456,8 +459,9 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 			x := sumSlice(node.ValidRecipeIdx)
 			// fmt.Printf("SDFJSFH %s %d\n", element, x)
 			tmp -= x
-			emit(root)
 		}
+		emit(root)
+		time.Sleep(1000 * time.Millisecond)
 	}
 
 	// CutTree(node)
@@ -782,7 +786,6 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 	var wg sync.WaitGroup
 
 	for !queue.isEmpty() {
-		time.Sleep(100 * time.Millisecond)
 
 		currentRecipe := queue.dequeue()
 
@@ -813,6 +816,7 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 			currentNode1.setValid()
 			currentNode2.setValid()
 			emit(root)
+			time.Sleep(1000 * time.Millisecond)
 			continue
 		}
 
@@ -838,10 +842,12 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 
 		wg.Wait()
 		emit(root)
+		time.Sleep(1000 * time.Millisecond)
 	}
 
 	// cut invalid subtrees
 	CutTree(root)
+	emit(root)
 	return root, nil
 }
 
