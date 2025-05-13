@@ -46,7 +46,7 @@
    ```
 
 2. **Run Docker Engine**
-   Pastikan docker engine jalan
+   - Pastikan docker engine jalan
 
 3. **Build the Project**
 
@@ -56,7 +56,7 @@
    ```
 
 4. **Run the Application**
-   Open the local-host by pressing (ctrl+click)
+   - Open the local-host by pressing (ctrl+click)
 
 ## 👤 Author
 
@@ -70,9 +70,15 @@
         </a>
       </td>
       <td align="center">
-        <a href="https://github.com/Arlow5761">
-          <img src="https://avatars.githubusercontent.com/u/96019562?v=4" width="100px;" style="border-radius: 50%;" alt="Arlow5761"/><br />
-          <sub><b>Arlow Emmanuel Hergara</b></sub>
+        <a href="https://github.com/L4mbads">
+          <img src="https://avatars.githubusercontent.com/u/85736842?v=4" width="100px;" style="border-radius: 50%;" alt="L4mbads"/><br />
+          <sub><b>Fachriza Ahmad Setiyono</b></sub>
+        </a>
+      </td>
+      <td align="center">
+        <a href="https://github.com/kin-ark">
+          <img src="https://avatars.githubusercontent.com/u/88976627?v=4" width="100px;" style="border-radius: 50%;" alt="kin-ark"/><br />
+          <sub><b>M Kinan Arkansyaddad</b></sub>
         </a>
       </td>
     </tr>
@@ -87,4 +93,4 @@
 </p>
 
 > [!NOTE]\
-> README Credits: Kleio-V.
+> README Credit: Kleio-V.
