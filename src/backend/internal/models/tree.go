@@ -16,306 +16,21 @@ type Recipe struct {
 	Ingredient2 string
 }
 
-// func DFS(db *sql.DB, parentNode *ElementNode, element string, targetCount int) (*ElementNode, error) {
-// 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
+type RecipeData struct {
+	Tree        *ElementNode `json:"tree"`
+	NodeCount   int          `json:"nodeCount"`
+	RecipeCount int          `json:"recipeCount"`
+}
 
-// 	fmt.Printf("Processing %s \n", element)
+var nodeCount int
 
-// 	if isBasicElement(element) {
-// 		fmt.Printf("%s leaf\n", element)
-// 		node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
-// 		node.setValid()
-// 		return node, nil
-// 	}
-
-// 	typeQuery := "SELECT type FROM elements WHERE name = $1"
-// 	row := db.QueryRow(typeQuery, element)
-// 	var elementType int
-// 	err := row.Scan(&elementType)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	query := "SELECT ingredient1, ingredient2 FROM recipes WHERE element = $1"
-// 	rows, err := db.Query(query, element)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	var recipes []Recipe
-// 	for rows.Next() {
-// 		var ing1, ing2 string
-// 		if err := rows.Scan(&ing1, &ing2); err != nil {
-// 			continue
-// 		}
-
-// 		var type1, type2 int
-// 		row = db.QueryRow(typeQuery, ing1)
-// 		if err := row.Scan(&type1); err != nil || type1 >= elementType {
-// 			continue
-// 		}
-
-// 		row = db.QueryRow(typeQuery, ing2)
-// 		if err := row.Scan(&type2); err != nil || type2 >= elementType {
-// 			continue
-// 		}
-
-// 		recipes = append(recipes, Recipe{Ingredient1: ing1, Ingredient2: ing2})
-// 	}
-
-// 	rows.Close()
-// 	if len(recipes) == 0 {
-// 		return nil, fmt.Errorf("no valid recipe found for %s", element)
-// 	}
-// 	fmt.Println("recipe found")
-
-// 	var mu sync.Mutex
-// 	var wg sync.WaitGroup
-// 	root := node
-// 	for root.Parent != nil {
-// 		root = root.Parent
-// 	}
-
-// 	validRecipeCount := 0
-// 	for _, recipe := range recipes {
-// 		if validRecipeCount >= targetCount {
-// 			break
-// 		}
-// 		if sumSlice(root.ValidRecipeIdx) >= targetCount {
-// 			break
-// 		}
-
-// 		wg.Add(1)
-// 		go func(idx int, r Recipe) {
-// 			defer wg.Done()
-
-// 			recipeNode := &RecipeNode{}
-// 			childNode := &ElementNode{Name: element, Parent: parentNode}
-// 			childNode.Index = idx
-// 			childNode.Recipes = []*RecipeNode{recipeNode}
-
-// 			var child1, child2 *ElementNode
-// 			var err1, err2 error
-
-// 			var innerWg sync.WaitGroup
-// 			innerWg.Add(2)
-
-// 			go func() {
-// 				defer innerWg.Done()
-// 				child1, err1 = DFS(db, childNode, r.Ingredient1, targetCount)
-// 			}()
-// 			go func() {
-// 				defer innerWg.Done()
-// 				child2, err2 = DFS(db, childNode, r.Ingredient2, targetCount)
-// 			}()
-// 			innerWg.Wait()
-
-// 			if err1 == nil && err2 == nil && child1 != nil && child2 != nil {
-// 				child1.Index = idx
-// 				child2.Index = idx
-// 				recipeNode.Ingredient1 = child1
-// 				recipeNode.Ingredient2 = child2
-// 				child1.setValid()
-// 				child2.setValid()
-
-// 				mu.Lock()
-// 				node.Recipes = append(node.Recipes, recipeNode)
-// 				node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
-// 				validRecipeCount++
-// 				mu.Unlock()
-// 			}
-// 		}(validRecipeCount, recipe)
-// 	}
-
-// 	wg.Wait()
-// 	CutTree(node)
-// 	return node, nil
-// }
-
-// func DFS(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}) (*ElementNode, error) {
-// 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
-// 	if isBasicElement(element) {
-// 		fmt.Printf("leaf %s\n", element)
-// 		node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
-// 		node.setValid()
-// 		return node, nil
-// 	} else {
-// 		fmt.Printf("node %s\n", element)
-// 	}
-
-// 	typeQuery := "SELECT type FROM elements WHERE name = $1"
-// 	row := db.QueryRowContext(ctx, typeQuery, element)
-// 	var elementType int
-// 	if err := row.Scan(&elementType); err != nil {
-// 		return nil, err
-// 	}
-
-// 	query := "SELECT ingredient1, ingredient2 FROM recipes WHERE element = $1"
-// 	rows, err := db.QueryContext(ctx, query, element)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	var recipes []Recipe
-// 	for rows.Next() {
-// 		var ing1, ing2 string
-// 		if err := rows.Scan(&ing1, &ing2); err != nil {
-// 			continue
-// 		}
-
-// 		var type1, type2 int
-// 		row = db.QueryRowContext(ctx, typeQuery, ing1)
-// 		if err := row.Scan(&type1); err != nil || type1 >= elementType {
-// 			continue
-// 		}
-
-// 		row = db.QueryRowContext(ctx, typeQuery, ing2)
-// 		if err := row.Scan(&type2); err != nil || type2 >= elementType {
-// 			continue
-// 		}
-
-// 		recipes = append(recipes, Recipe{Ingredient1: ing1, Ingredient2: ing2})
-// 	}
-
-// 	if len(recipes) == 0 {
-// 		return nil, fmt.Errorf("no valid recipe found for %s", element)
-// 	}
-
-// 	var mu sync.Mutex
-// 	var wg sync.WaitGroup
-// 	root := node
-// 	for root.Parent != nil {
-// 		root = root.Parent
-// 	}
-
-// 	validCount := 0
-// 	ctx, cancel := context.WithCancel(ctx)
-// 	defer cancel()
-
-// 	for _, recipe := range recipes {
-// 		select {
-// 		case <-ctx.Done():
-// 			break
-// 		default:
-// 		}
-
-// 		mu.Lock()
-// 		if validCount >= targetCount || sumSlice(root.ValidRecipeIdx) >= targetCount {
-// 			mu.Unlock()
-// 			break
-// 		}
-// 		mu.Unlock()
-
-// 		wg.Add(1)
-// 		go func(idx *int, r Recipe) {
-// 			defer wg.Done()
-
-// 			// Limit concurrency
-// 			select {
-// 			case sem <- struct{}{}:
-// 			case <-ctx.Done():
-// 				return
-// 			}
-// 			defer func() { <-sem }()
-
-// 			ingredient1 := recipe.Ingredient1
-// 			ingredient2 := recipe.Ingredient2
-
-// 			hasValidRecipe := true
-// 			currentRecipeNode := &RecipeNode{Ingredient1: nil, Ingredient2: nil}
-// 			mu.Lock()
-// 			node.Recipes = append(node.Recipes, currentRecipeNode)
-// 			mu.Unlock()
-// 			if ingredient1 != "" {
-// 				// fmt.Printf("entering %s (%d, %d)\n", ingredient1, depth, minDepth)
-// 				child1, err := DFS(ctx, db, node, ingredient1, targetCount, sem)
-// 				if err == nil && child1 != nil {
-// 					child1.Index = validCount
-// 					currentRecipeNode.Ingredient1 = child1
-// 					child1.setValid()
-// 				} else {
-// 					hasValidRecipe = false
-// 				}
-// 			}
-
-// 			if hasValidRecipe && ingredient2 != "" {
-// 				// fmt.Printf("entering %s (%d, %d)\n", ingredient2, depth, minDepth)
-// 				child2, err := DFS(ctx, db, node, ingredient2, targetCount, sem)
-// 				if err == nil && child2 != nil {
-// 					child2.Index = validCount
-// 					currentRecipeNode.Ingredient2 = child2
-// 					child2.setValid()
-// 				} else {
-// 					hasValidRecipe = false
-// 				}
-// 			}
-
-// 			if hasValidRecipe {
-// 				validCount++
-// 			} else {
-// 				// remove invalid recipe
-// 				node.Recipes = node.Recipes[:len(node.Recipes)-1]
-// 			}
-
-// 			// recipeNode := &RecipeNode{}
-// 			// childNode := &ElementNode{Name: element, Parent: parentNode}
-// 			// childNode.Index = *idx
-// 			// childNode.Recipes = []*RecipeNode{recipeNode}
-// 			// var child1, child2 *ElementNode
-// 			// mu.Lock()
-// 			// node.Recipes = append(node.Recipes, recipeNode)
-// 			// mu.Unlock()
-
-// 			// var err1, err2 error
-// 			// var innerWg sync.WaitGroup
-// 			// innerWg.Add(2)
-
-// 			// go func() {
-// 			// 	defer innerWg.Done()
-// 			// 	child1, err1 = DFS(ctx, db, childNode, r.Ingredient1, targetCount, sem)
-// 			// }()
-// 			// go func() {
-// 			// 	defer innerWg.Done()
-// 			// 	child2, err2 = DFS(ctx, db, childNode, r.Ingredient2, targetCount, sem)
-// 			// }()
-// 			// innerWg.Wait()
-
-// 			// if err1 == nil && err2 == nil && child1 != nil && child2 != nil {
-// 			// 	child1.Index = *idx
-// 			// 	child2.Index = *idx
-
-// 			// 	mu.Lock()
-// 			// 	recipeNode.Ingredient1 = child1
-// 			// 	recipeNode.Ingredient2 = child2
-// 			// 	// child1.setValid()
-// 			// 	// child2.setValid()
-// 			// 	// node.Recipes = append(node.Recipes, recipeNode)
-// 			// 	// node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
-// 			// 	for len(node.ValidRecipeIdx) <= validCount {
-// 			// 		node.ValidRecipeIdx = append(node.ValidRecipeIdx, 0)
-// 			// 	}
-// 			// 	// node.ValidRecipeIdx[validCount] = sumSlice(node.Recipes[validCount].Ingredient1.ValidRecipeIdx) * sumSlice(node.Recipes[validCount].Ingredient2.ValidRecipeIdx)
-// 			// 	validCount++
-// 			// 	if validCount >= targetCount {
-// 			// 		cancel() // early cancel!
-// 			// 	}
-// 			// 	mu.Unlock()
-// 			// }
-// 		}(&validCount, recipe)
-// 	}
-
-// 	wg.Wait()
-// 	CutTree(node)
-// 	return node, nil
-// }
-
-func DFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (*ElementNode, error) {
+func DFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (RecipeData, error) {
+	nodeCount = 0
 	ctx := context.Background()
 	sem := make(chan struct{}, runtime.NumCPU())
 	root, err := DFSRecursiveLive(ctx, db, nil, element, targetCount, sem, emit, 0, true)
 	CutTree(root)
-	return root, err
+	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, err
 }
 
 func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}, emit func(*ElementNode), idx int, isLeft bool) (*ElementNode, error) {
@@ -480,16 +195,18 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 	}
 }
 
-func DFS(db *sql.DB, element string, targetCount int) (*ElementNode, error) {
+func DFS(db *sql.DB, element string, targetCount int) (RecipeData, error) {
+	nodeCount = 0
 	ctx := context.Background()
 	sem := make(chan struct{}, runtime.NumCPU())
 	root, err := DFSRecursive(ctx, db, nil, element, targetCount, sem)
 	CutTree(root)
-	return root, err
+	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, err
 }
 
 func DFSRecursive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}) (*ElementNode, error) {
 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
+	nodeCount++
 
 	if isBasicElement(element) {
 		// fmt.Printf("%s leaf\n", element)
@@ -783,7 +500,8 @@ func DFSRecursive(ctx context.Context, db *sql.DB, parentNode *ElementNode, elem
 //		CutTree(node)
 //		return node, nil
 //	}
-func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (*ElementNode, error) {
+func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (RecipeData, error) {
+	nodeCount = 0
 	// initialize root node
 	root := &ElementNode{Name: element, Parent: nil, IsValid: false}
 
@@ -794,9 +512,16 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 	var wg sync.WaitGroup
 
 	for !queue.isEmpty() {
+		nodeCount += 2
 
 		currentRecipe := queue.dequeue()
 
+		if currentRecipe.Ingredient1 != nil {
+			fmt.Print(currentRecipe.Ingredient1.Name)
+		}
+		if currentRecipe.Ingredient1 != nil {
+			fmt.Println(currentRecipe.Ingredient2.Name)
+		}
 		currentNode1 := currentRecipe.Ingredient1
 		currentNode2 := currentRecipe.Ingredient2
 
@@ -856,10 +581,11 @@ func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode
 	// cut invalid subtrees
 	CutTree(root)
 	emit(root)
-	return root, nil
+	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, nil
 }
 
-func BFS(db *sql.DB, element string, targetCount int) (*ElementNode, error) {
+func BFS(db *sql.DB, element string, targetCount int) (RecipeData, error) {
+	nodeCount = 0
 	// initialize root node
 	root := &ElementNode{Name: element, Parent: nil, IsValid: false}
 
@@ -870,7 +596,7 @@ func BFS(db *sql.DB, element string, targetCount int) (*ElementNode, error) {
 	var wg sync.WaitGroup
 
 	for !queue.isEmpty() {
-
+		nodeCount += 2
 		currentRecipe := queue.dequeue()
 
 		currentNode1 := currentRecipe.Ingredient1
@@ -927,7 +653,7 @@ func BFS(db *sql.DB, element string, targetCount int) (*ElementNode, error) {
 
 	// cut invalid subtrees
 	CutTree(root)
-	return root, nil
+	return RecipeData{root, nodeCount, sumSlice(root.ValidRecipeIdx)}, nil
 }
 
 func processNodeBFS(db *sql.DB, node *ElementNode, queue *RecipeQueue) {
