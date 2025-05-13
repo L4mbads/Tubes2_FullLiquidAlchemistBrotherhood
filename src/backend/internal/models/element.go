@@ -1,5 +1,7 @@
 package models
 
+import "sync"
+
 type ElementType struct {
 	Name     string
 	ImageUrl string
@@ -15,8 +17,12 @@ type ElementNode struct {
 	Recipes        []*RecipeNode `json:"recipes"`
 }
 
+var mu sync.Mutex
+
 func (node *ElementNode) checkValidRecipe(recipeIdx int) {
 	// fmt.Printf("checking valid recipe of%s, ", node.Name)
+	// mu.Lock()
+	// defer mu.Unlock()
 	recipe := node.Recipes[recipeIdx]
 	if recipe.Ingredient1 == nil || recipe.Ingredient2 == nil {
 		// fmt.Printf("ingreidents nil%s\n", node.Name)

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
+	"runtime"
 	"slices"
 	"sync"
 )
@@ -307,16 +309,24 @@ type Recipe struct {
 // 	return node, nil
 // }
 
-func DFS(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}) (*ElementNode, error) {
+func DFS(db *sql.DB, element string, targetCount int) (*ElementNode, error) {
+	ctx := context.Background()
+	sem := make(chan struct{}, runtime.NumCPU())
+	root, err := DFSRecursive(ctx, db, nil, element, targetCount, sem)
+	CutTree(root)
+	return root, err
+}
+
+func DFSRecursive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}) (*ElementNode, error) {
 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
 
 	if isBasicElement(element) {
-		fmt.Printf("%s leaf\n", element)
+		// fmt.Printf("%s leaf\n", element)
 		node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
-		// node.setValid()
+		node.setValid()
 		return node, nil
 	}
-	fmt.Printf("%s node\n", element)
+	// fmt.Printf("%s node\n", element)
 
 	typeQuery := "SELECT type FROM elements WHERE name = $1"
 	row := db.QueryRowContext(ctx, typeQuery, element)
@@ -356,6 +366,10 @@ func DFS(ctx context.Context, db *sql.DB, parentNode *ElementNode, element strin
 		return nil, fmt.Errorf("no valid recipe found for %s", element)
 	}
 
+	// tmp := targetCount / len(recipes)
+	tmp := targetCount
+	targetCount = int(math.Ceil(float64(targetCount) / float64(len(recipes))))
+
 	i := 0
 	// root := node
 	// for root.Parent != nil {
@@ -377,13 +391,11 @@ func DFS(ctx context.Context, db *sql.DB, parentNode *ElementNode, element strin
 	}
 
 	for _, recipe := range recipes {
-		if i > 0 && targetCount < 1 {
+		if i > 0 && tmp < 1 {
 			break
 		}
 
-		child1 := &ElementNode{Index: i}
-		child2 := &ElementNode{Index: i}
-		recipeNode := &RecipeNode{Ingredient1: child1, Ingredient2: child2}
+		recipeNode := &RecipeNode{}
 		node.Recipes = append(node.Recipes, recipeNode)
 		var err1, err2 error
 		var wg sync.WaitGroup
@@ -398,16 +410,16 @@ func DFS(ctx context.Context, db *sql.DB, parentNode *ElementNode, element strin
 			go func() {
 				defer release()
 				defer wg.Done()
-				recipeNode.Ingredient1, err1 = DFS(ctx, db, node, recipe.Ingredient1, targetCount, sem)
+				recipeNode.Ingredient1, err1 = DFSRecursive(ctx, db, node, recipe.Ingredient1, targetCount, sem)
 			}()
 		} else {
-			recipeNode.Ingredient1, err1 = DFS(ctx, db, node, recipe.Ingredient1, targetCount, sem)
+			recipeNode.Ingredient1, err1 = DFSRecursive(ctx, db, node, recipe.Ingredient1, targetCount, sem)
 		}
 
 		// if tryAcquire() {
 		// 	wg.Add(1)
 		// 	go func() {
-		// 		// defer release()
+		// 		defer release()
 		// 		defer wg.Done()
 		// 		recipeNode.Ingredient2, err2 = DFS(ctx, db, node, recipe.Ingredient2, targetCount, sem)
 		// 	}()
@@ -415,16 +427,16 @@ func DFS(ctx context.Context, db *sql.DB, parentNode *ElementNode, element strin
 		// 	recipeNode.Ingredient2, err2 = DFS(ctx, db, node, recipe.Ingredient2, targetCount, sem)
 		// }
 
+		// ss := sumSlice(recipeNode.Ingredient1.ValidRecipeIdx)
+		// fmt.Printf("%s = %d resep\n", recipeNode.Ingredient1.Name, ss)
+		recipeNode.Ingredient2, err2 = DFSRecursive(ctx, db, node, recipe.Ingredient2, targetCount, sem)
 		wg.Wait()
-		ss := sumSlice(recipeNode.Ingredient1.ValidRecipeIdx)
-		fmt.Printf("%s = %d resep\n", recipeNode.Ingredient1.Name, ss)
-		recipeNode.Ingredient2, err2 = DFS(ctx, db, node, recipe.Ingredient2, max(1, targetCount/ss), sem)
 
 		hasValid := true
-		if err1 != nil || child1 == nil {
+		if err1 != nil {
 			hasValid = false
 		}
-		if err2 != nil || child2 == nil {
+		if err2 != nil {
 			hasValid = false
 		}
 
@@ -440,13 +452,17 @@ func DFS(ctx context.Context, db *sql.DB, parentNode *ElementNode, element strin
 
 			i++
 			x := sumSlice(node.ValidRecipeIdx)
-			fmt.Printf("SDFJSFH %s %d\n", element, x)
-			targetCount -= x
+			// fmt.Printf("SDFJSFH %s %d\n", element, x)
+			tmp -= x
 		}
 	}
 
 	// CutTree(node)
-	return node, nil
+	if i == 0 {
+		return node, fmt.Errorf("no valid sub-recipes for %s", element)
+	} else {
+		return node, nil
+	}
 }
 
 // func DFS(db *sql.DB, parentNode *ElementNode, element string, targetCount int) (*ElementNode, error) {
