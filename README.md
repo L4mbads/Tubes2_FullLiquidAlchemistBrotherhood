@@ -45,25 +45,18 @@
    cd Tubes2_FullLiquidAlchemistBrotherhood
    ```
 
-2. **Restore Dependencies**
-
-   ```bash
-   dotnet restore
-   ```
+2. **Run Docker Engine**
+   Pastikan docker engine jalan
 
 3. **Build the Project**
 
    ```bash
-   dotnet build
+   docker compose build
+   docker compose up
    ```
 
 4. **Run the Application**
-
-   ```bash
-   dotnet run --project <path-to-main-csproj-file>
-   ```
-
-> ⚠️ Make sure to replace `<path-to-main-csproj-file>` with the actual path to your `.csproj` file if it's not in the root folder.
+   Open the local-host by pressing (ctrl+click)
 
 ## 👤 Author
 
