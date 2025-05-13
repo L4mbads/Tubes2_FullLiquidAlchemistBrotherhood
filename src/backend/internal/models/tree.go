@@ -313,13 +313,20 @@ type Recipe struct {
 func DFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (*ElementNode, error) {
 	ctx := context.Background()
 	sem := make(chan struct{}, runtime.NumCPU())
-	root, err := DFSRecursiveLive(ctx, db, nil, element, targetCount, sem, emit)
+	root, err := DFSRecursiveLive(ctx, db, nil, element, targetCount, sem, emit, 0, true)
 	CutTree(root)
 	return root, err
 }
 
-func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}, emit func(*ElementNode)) (*ElementNode, error) {
+func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}, emit func(*ElementNode), idx int, isLeft bool) (*ElementNode, error) {
 	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
+	if parentNode != nil {
+		if isLeft {
+			parentNode.Recipes[idx].Ingredient1 = node
+		} else {
+			parentNode.Recipes[idx].Ingredient2 = node
+		}
+	}
 
 	root := node
 	for root.Parent != nil {
@@ -400,13 +407,14 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 			break
 		}
 
-		recipeNode := &RecipeNode{}
-		node.Recipes = append(node.Recipes, recipeNode)
 		var err1, err2 error
 		var wg sync.WaitGroup
 		if ctx.Err() != nil {
 			break
 		}
+		recipeNode := &RecipeNode{Ingredient1: &ElementNode{Name: recipe.Ingredient1, Parent: node, Index: i}, Ingredient2: &ElementNode{Name: recipe.Ingredient2, Parent: node, Index: i}}
+		// recipeNode := &RecipeNode{}
+		node.Recipes = append(node.Recipes, recipeNode)
 
 		// wg.Add(1)
 
@@ -418,7 +426,7 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 				recipeNode.Ingredient1, err1 = DFSRecursive(ctx, db, node, recipe.Ingredient1, targetCount, sem)
 			}()
 		} else {
-			recipeNode.Ingredient1, err1 = DFSRecursiveLive(ctx, db, node, recipe.Ingredient1, targetCount, sem, emit)
+			_, err1 = DFSRecursiveLive(ctx, db, node, recipe.Ingredient1, targetCount, sem, emit, i, true)
 		}
 
 		// if tryAcquire() {
@@ -434,7 +442,7 @@ func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, 
 
 		// ss := sumSlice(recipeNode.Ingredient1.ValidRecipeIdx)
 		// fmt.Printf("%s = %d resep\n", recipeNode.Ingredient1.Name, ss)
-		recipeNode.Ingredient2, err2 = DFSRecursiveLive(ctx, db, node, recipe.Ingredient2, targetCount, sem, emit)
+		_, err2 = DFSRecursiveLive(ctx, db, node, recipe.Ingredient2, targetCount, sem, emit, i, false)
 		wg.Wait()
 
 		hasValid := true
