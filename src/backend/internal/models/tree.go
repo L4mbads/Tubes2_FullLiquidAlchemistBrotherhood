@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"time"
 )
 
 type Recipe struct {
@@ -309,6 +310,164 @@ type Recipe struct {
 // 	return node, nil
 // }
 
+func DFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (*ElementNode, error) {
+	ctx := context.Background()
+	sem := make(chan struct{}, runtime.NumCPU())
+	root, err := DFSRecursiveLive(ctx, db, nil, element, targetCount, sem, emit)
+	CutTree(root)
+	return root, err
+}
+
+func DFSRecursiveLive(ctx context.Context, db *sql.DB, parentNode *ElementNode, element string, targetCount int, sem chan struct{}, emit func(*ElementNode)) (*ElementNode, error) {
+	node := &ElementNode{Name: element, Parent: parentNode, IsValid: false}
+
+	if isBasicElement(element) {
+		// fmt.Printf("%s leaf\n", element)
+		node.ValidRecipeIdx = append(node.ValidRecipeIdx, 1)
+		node.setValid()
+		return node, nil
+	}
+	// fmt.Printf("%s node\n", element)
+
+	typeQuery := "SELECT type FROM elements WHERE name = $1"
+	row := db.QueryRowContext(ctx, typeQuery, element)
+	var elementType int
+	if err := row.Scan(&elementType); err != nil {
+		return nil, err
+	}
+
+	query := "SELECT ingredient1, ingredient2 FROM recipes WHERE element = $1"
+	rows, err := db.QueryContext(ctx, query, element)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recipes []Recipe
+	for rows.Next() {
+		var ing1, ing2 string
+		if err := rows.Scan(&ing1, &ing2); err != nil {
+			continue
+		}
+
+		var type1, type2 int
+		row = db.QueryRowContext(ctx, typeQuery, ing1)
+		if err := row.Scan(&type1); err != nil || type1 >= elementType {
+			continue
+		}
+		row = db.QueryRowContext(ctx, typeQuery, ing2)
+		if err := row.Scan(&type2); err != nil || type2 >= elementType {
+			continue
+		}
+
+		recipes = append(recipes, Recipe{Ingredient1: ing1, Ingredient2: ing2})
+	}
+
+	if len(recipes) == 0 {
+		return nil, fmt.Errorf("no valid recipe found for %s", element)
+	}
+
+	// tmp := targetCount / len(recipes)
+	tmp := targetCount
+	targetCount = int(math.Ceil(float64(targetCount) / float64(len(recipes))))
+
+	i := 0
+	root := node
+	for root.Parent != nil {
+		root = root.Parent
+	}
+
+	tryAcquire := func() bool {
+		// return true
+		select {
+		case sem <- struct{}{}:
+			return true
+		default:
+			return false
+		}
+	}
+
+	release := func() {
+		<-sem
+	}
+
+	for _, recipe := range recipes {
+		if i > 0 && tmp < 1 {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+
+		recipeNode := &RecipeNode{}
+		node.Recipes = append(node.Recipes, recipeNode)
+		var err1, err2 error
+		var wg sync.WaitGroup
+		if ctx.Err() != nil {
+			break
+		}
+
+		// wg.Add(1)
+
+		if tryAcquire() {
+			wg.Add(1)
+			go func() {
+				defer release()
+				defer wg.Done()
+				recipeNode.Ingredient1, err1 = DFSRecursive(ctx, db, node, recipe.Ingredient1, targetCount, sem)
+			}()
+		} else {
+			recipeNode.Ingredient1, err1 = DFSRecursiveLive(ctx, db, node, recipe.Ingredient1, targetCount, sem, emit)
+		}
+
+		// if tryAcquire() {
+		// 	wg.Add(1)
+		// 	go func() {
+		// 		defer release()
+		// 		defer wg.Done()
+		// 		recipeNode.Ingredient2, err2 = DFS(ctx, db, node, recipe.Ingredient2, targetCount, sem)
+		// 	}()
+		// } else {
+		// 	recipeNode.Ingredient2, err2 = DFS(ctx, db, node, recipe.Ingredient2, targetCount, sem)
+		// }
+
+		// ss := sumSlice(recipeNode.Ingredient1.ValidRecipeIdx)
+		// fmt.Printf("%s = %d resep\n", recipeNode.Ingredient1.Name, ss)
+		recipeNode.Ingredient2, err2 = DFSRecursiveLive(ctx, db, node, recipe.Ingredient2, targetCount, sem, emit)
+		wg.Wait()
+
+		hasValid := true
+		if err1 != nil {
+			hasValid = false
+		}
+		if err2 != nil {
+			hasValid = false
+		}
+
+		if hasValid {
+			recipeNode.Ingredient1.Index = i
+			recipeNode.Ingredient2.Index = i
+			// recipeNode.Ingredient1 = child1
+			// recipeNode.Ingredient2 = child2
+
+			// Perform setValid and parent updates in main thread
+			recipeNode.Ingredient1.setValid()
+			recipeNode.Ingredient2.setValid()
+
+			i++
+			x := sumSlice(node.ValidRecipeIdx)
+			// fmt.Printf("SDFJSFH %s %d\n", element, x)
+			tmp -= x
+			emit(root)
+		}
+	}
+
+	// CutTree(node)
+	if i == 0 {
+		return node, fmt.Errorf("no valid sub-recipes for %s", element)
+	} else {
+		return node, nil
+	}
+}
+
 func DFS(db *sql.DB, element string, targetCount int) (*ElementNode, error) {
 	ctx := context.Background()
 	sem := make(chan struct{}, runtime.NumCPU())
@@ -609,9 +768,82 @@ func DFSRecursive(ctx context.Context, db *sql.DB, parentNode *ElementNode, elem
 // 		}
 // 	}
 
-// 	CutTree(node)
-// 	return node, nil
-// }
+//		CutTree(node)
+//		return node, nil
+//	}
+func BFSLive(db *sql.DB, element string, targetCount int, emit func(*ElementNode)) (*ElementNode, error) {
+	// initialize root node
+	root := &ElementNode{Name: element, Parent: nil, IsValid: false}
+
+	// use queue for BFS
+	queue := RecipeQueue{}
+	queue.enqueue(&RecipeNode{Ingredient1: root, Ingredient2: nil})
+
+	var wg sync.WaitGroup
+
+	for !queue.isEmpty() {
+		time.Sleep(100 * time.Millisecond)
+
+		currentRecipe := queue.dequeue()
+
+		currentNode1 := currentRecipe.Ingredient1
+		currentNode2 := currentRecipe.Ingredient2
+
+		branchHitTarget := false
+		nodeptr := currentNode1
+		for nodeptr != nil {
+			recipeCount := sumSlice(nodeptr.ValidRecipeIdx)
+			if recipeCount >= targetCount {
+				fmt.Printf("%d %s VALID RECIPE IDX\n", targetCount, nodeptr.Name)
+				// early stop
+				branchHitTarget = true
+				break
+			}
+			nodeptr = nodeptr.Parent
+		}
+		if branchHitTarget {
+			continue
+		}
+
+		// both basic element
+		if currentNode1 != nil && currentNode2 != nil &&
+			isBasicElement(currentNode1.Name) && isBasicElement(currentNode2.Name) {
+			currentNode1.ValidRecipeIdx = append(currentNode1.ValidRecipeIdx, 1)
+			currentNode2.ValidRecipeIdx = append(currentNode2.ValidRecipeIdx, 1)
+			currentNode1.setValid()
+			currentNode2.setValid()
+			emit(root)
+			continue
+		}
+
+		// processNodeBFS(db, currentNode1, &queue)
+		// processNodeBFS(db, currentNode2, &queue)
+
+		wg.Add(2)
+		go func(node *ElementNode) {
+			defer wg.Done()
+			if node == nil {
+				return
+			}
+			processNodeBFS(db, node, &queue)
+		}(currentNode1)
+
+		go func(node *ElementNode) {
+			defer wg.Done()
+			if node == nil {
+				return
+			}
+			processNodeBFS(db, node, &queue)
+		}(currentNode2)
+
+		wg.Wait()
+		emit(root)
+	}
+
+	// cut invalid subtrees
+	CutTree(root)
+	return root, nil
+}
 
 func BFS(db *sql.DB, element string, targetCount int) (*ElementNode, error) {
 	// initialize root node

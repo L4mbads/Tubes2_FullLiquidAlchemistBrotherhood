@@ -71,6 +71,16 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		if count <= 0 {
+			http.Error(w, createErrorResponse("Target count must be positive integer", http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if strategy != "bfs" && strategy != "dfs" {
+			http.Error(w, createErrorResponse("Strategy parameter error", http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
 		if strategy == "dfs" {
 			fmt.Println("DFS")
 
@@ -97,6 +107,59 @@ func GetRecipeHandler(db *sql.DB) http.HandlerFunc {
 		}
 		fmt.Println("done")
 
+	}
+}
+
+func GetLiveRecipeHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Set SSE headers
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+			return
+		}
+
+		element := r.URL.Query().Get("element")
+		strategy := strings.ToLower(r.URL.Query().Get("strategy"))
+		count, err := strconv.Atoi(r.URL.Query().Get("count"))
+
+		if element == "" {
+			http.Error(w, createErrorResponse("Element parameter required", http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if err != nil {
+			http.Error(w, createErrorResponse("Target count parameter error", http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if count <= 0 {
+			http.Error(w, createErrorResponse("Target count must be positive integer", http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if strategy != "bfs" && strategy != "dfs" {
+			http.Error(w, createErrorResponse("Strategy parameter error", http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		emit := func(node *models.ElementNode) {
+			data, _ := json.Marshal(node)
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
+
+		if strategy == "dfs" {
+			models.DFSLive(db, element, count, emit)
+		} else {
+			models.BFSLive(db, element, count, emit)
+		}
+		fmt.Fprintf(w, "event: done\ndata: {}\n\n")
+		flusher.Flush()
 	}
 }
 

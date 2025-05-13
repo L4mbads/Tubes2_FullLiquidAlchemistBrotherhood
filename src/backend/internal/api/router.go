@@ -13,5 +13,6 @@ func NewRouter(dbConn *sql.DB) *mux.Router {
 
 	router.HandleFunc("/api/go/element/{element}", GetElementHandler(dbConn)).Methods("GET")
 	router.HandleFunc("/api/go/recipe", GetRecipeHandler(dbConn)).Methods("GET")
+	router.HandleFunc("/api/go/liverecipe", GetLiveRecipeHandler(dbConn)).Methods("GET")
 	return router
 }
